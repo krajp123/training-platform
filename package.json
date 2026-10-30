@@ -1,0 +1,22 @@
+{
+  "name": "skillpath-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "admin"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,frontend,admin -c cyan,green,magenta \"npm run dev --workspace @skillpath/backend\" \"npm run dev:client --workspace @skillpath/frontend\" \"npm run dev --workspace @skillpath/admin\"",
+    "dev:frontend": "npm run dev --workspace @skillpath/frontend",
+    "dev:backend": "npm run dev --workspace @skillpath/backend",
+    "dev:admin": "npm run dev --workspace @skillpath/admin",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start --workspace @skillpath/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
