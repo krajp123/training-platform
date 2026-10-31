@@ -1,8 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import AdminApp from './app/AdminApp.jsx';
-import './styles/admin.css';
-import '../../shared/styles/typography.css';
+import '../../index.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
