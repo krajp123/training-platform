@@ -1,27 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, Code2,
-  GraduationCap, MessageCircle, Palette, PhoneCall, Play, Sparkles, Star, Video, X, Zap,
+  ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2,
+  GraduationCap, MessageCircle, Palette, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar.jsx';
+import Footer from '../components/layout/Footer.jsx';
 
-const coursePrograms = {
-  bim: {
-    label: 'BIM Program',
-    title: 'BIM Professional Program',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
-    focus: 'Building information modeling',
-    format: 'Guided project learning',
-  },
-  computational: {
-    label: 'Computational',
-    title: 'Computational Design Program',
-    image: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1200&q=85',
-    focus: 'Parametric design workflows',
-    format: 'Guided project learning',
-  },
-};
+const bimPrograms = [
+  { duration: '1 month', hours: '20 hours', price: '₹4,999', rating: '4.8', description: 'Build practical BIM foundations through guided exercises.' },
+  { duration: '6 months', hours: '120 hours', price: '₹24,999', rating: '4.8', description: 'Develop job-ready BIM skills with project-based learning.' },
+  { duration: '1 year', hours: '240 hours', price: '₹39,999', rating: '4.8', description: 'Build advanced BIM expertise through a year-long learning path.' },
+];
+
+const bimProgramImage =
+  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85';
 
 const courseOutcomes = [
   {
@@ -43,30 +36,53 @@ const courseOutcomes = [
 
 const benefits = [
   {
-    icon: Palette,
-    title: 'Learn by doing',
-    text: 'Work on real-world projects that turn new knowledge into practical skills.',
+    icon: Blocks,
+    label: 'PROJECT-BASED',
+    title: 'Practice on real projects',
+    text: 'Apply BIM and design concepts to guided AEC projects, building practical skills you can use from day one.',
     tone: 'mint',
   },
   {
-    icon: Video,
-    title: 'Learn with experts',
-    text: 'Get guidance, thoughtful feedback, and live sessions with industry mentors.',
+    icon: UserRoundCheck,
+    label: 'EXPERT GUIDANCE',
+    title: 'Learn alongside industry experts',
+    text: 'Get focused feedback, personal guidance, and live sessions led by professionals working in the industry.',
     tone: 'violet',
   },
   {
-    icon: ArrowDownRight,
-    title: 'Build your next chapter',
-    text: 'Create a portfolio of work and skills that help move your career forward.',
+    icon: BriefcaseBusiness,
+    label: 'CAREER-READY',
+    title: 'Build a portfolio that stands out',
+    text: 'Turn completed projects into a portfolio that demonstrates your skills and supports your next career move.',
     tone: 'coral',
   },
+];
+
+const benefitGridVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.13 } },
+};
+
+const benefitCardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const courseGuidanceSlides = [
+  { src: '/course-guidance-1.png', alt: 'Learning advisor guiding a student through course options' },
+  { src: '/course-guidance-2.png', alt: 'Online course consultation with a learning advisor' },
+  { src: '/course-guidance-3.png', alt: 'Advisor presenting BIM course choices during a video call' },
 ];
 
 const homeTailwindStyles = `
   [&]:[--font-size-caption:0.75rem] [&]:[--font-size-small:0.875rem] [&]:[--font-size-body:1rem] [&]:[--font-size-lead:1.125rem] [&]:[--font-size-title:1.375rem]
   [&]:[--font-size-heading:2rem] [&]:[--font-size-display:clamp(3rem,_6vw,_4.75rem)] [&]:[--line-height-body:1.65] [&]:[--line-height-heading:1.2] [&]:[font-size:var(--font-size-body)]
   [&]:[line-height:var(--line-height-body)] [&]:[min-height:100vh] [&]:[overflow:hidden] [&]:[color:#f9f8ff] [&]:[background:#10101b]
-  [&]:[font-family:'DM_Sans',_sans-serif] [&_a]:[color:inherit] [&_a]:[text-decoration:none] [&_button]:[font:inherit] [&_.marketing-footer_a:hover]:[color:#c8b9ff]
+  [&]:[font-family:'DM_Sans',_sans-serif] [&_a]:[color:inherit] [&_a]:[text-decoration:none] [&_button]:[font:inherit]
   [&_.hero-primary:hover]:[background:rgba(255,255,255,.16)] [&_.hero-primary:hover]:[border-color:white] [&_.hero-primary:hover]:[transform:translateY(-2px)] [&_.hero-primary:hover]:[box-shadow:0_8px_24px_#0003] [&_.hero-secondary:hover]:![color:white] [&_.hero-secondary:hover]:[transform:translateY(-2px)] [&_.hero-secondary:hover_>_span]:[background:rgba(255,255,255,.12)] [&_.hero-secondary:hover_>_span]:[border-color:#ffffff70] [&_.closing-cta_>_button:hover]:[background:white] [&_.closing-cta_>_button:hover]:[border-color:white] [&_.landing-hero]:[position:relative]
   [&_.landing-hero]:[height:calc(100svh_-_90px)] [&_.landing-hero]:[min-height:0] [&_.landing-hero]:[display:grid] [&_.landing-hero]:[grid-template-columns:repeat(3,_minmax(0,_1fr))] [&_.landing-hero]:[align-items:center]
   [&_.landing-hero]:[padding:clamp(16px,_5vh,_52px)_clamp(25px,_9.2vw,_145px)] [&_.landing-hero]:[overflow:hidden] [&_.landing-hero]:[background:#10101b] [&_.landing-hero::before]:[content:''] [&_.landing-hero::before]:[position:absolute]
@@ -100,20 +116,27 @@ const homeTailwindStyles = `
   [&_.trust-stats_>_div_>_strong_span]:[color:#62d9c8] [&_.trust-stats_>_div_>_span]:[color:#777482] [&_.trust-stats_>_div_>_span]:[font-size:var(--font-size-caption)] [&_.trust-stats_>_i]:[height:26px] [&_.trust-stats_>_i]:[border-left:1px_solid_#e4e2e9]
   [&_.trust-partner]:[display:grid] [&_.trust-partner]:[gap:5px] [&_.trust-partner]:[color:#777482] [&_.trust-partner]:[font-size:0.6875rem] [&_.trust-partner]:[letter-spacing:1px]
   [&_.trust-partner_strong]:[display:flex] [&_.trust-partner_strong]:[align-items:center] [&_.trust-partner_strong]:[gap:5px] [&_.trust-partner_strong]:[color:#6550bd] [&_.trust-partner_strong]:[font-size:var(--font-size-small)]
-  [&_.trust-partner_strong]:[letter-spacing:.4px] [&_.landing-section]:[padding:83px_clamp(25px,_9.2vw,_145px)] [&_.learning-section]:[background:#f6f5f9] [&_.learning-section]:[color:#272432] [&_.section-intro]:[display:flex]
+  [&_.trust-partner_strong]:[letter-spacing:.4px] [&_.landing-section]:[padding:83px_clamp(25px,_9.2vw,_145px)] [&_.learning-section]:[background-color:#10101b] [&_.learning-section]:[color:#f8f6ff] [&_.section-intro]:[display:flex]
   [&_.section-intro]:[align-items:flex-end] [&_.section-intro]:[justify-content:space-between] [&_.section-intro]:[gap:25px] [&_.section-intro]:[margin-bottom:32px] [&_.landing-kicker]:[display:flex]
   [&_.landing-kicker]:[align-items:center] [&_.landing-kicker]:[gap:7px] [&_.landing-kicker]:[color:#8e899b] [&_.landing-kicker]:[font-size:0.6875rem] [&_.landing-kicker]:[font-weight:700]
   [&_.landing-kicker]:[letter-spacing:1.2px] [&_.landing-kicker_>_span]:[width:14px] [&_.landing-kicker_>_span]:[height:1px] [&_.landing-kicker_>_span]:[background:#63cdbd] [&_.section-intro_h2]:[margin:12px_0_0]
   [&_.section-intro_h2]:[font:700_clamp(29px,_4vw,_44px)/1.12_Manrope,_sans-serif] [&_.section-intro_h2]:[letter-spacing:-1.8px] [&_.story-copy_h2]:[margin:12px_0_0] [&_.story-copy_h2]:[font:700_clamp(29px,_4vw,_44px)/1.12_Manrope,_sans-serif] [&_.story-copy_h2]:[letter-spacing:-1.8px]
   [&_.closing-cta_h2]:[margin:13px_0_9px] [&_.closing-cta_h2]:[font:700_clamp(29px,_4vw,_44px)/1.12_Manrope,_sans-serif] [&_.closing-cta_h2]:[letter-spacing:-1.8px] [&_.section-intro_h2_span]:[color:#8171c6] [&_.section-intro_>_p]:[width:min(330px,_37%)]
   [&_.section-intro_>_p]:[margin:0_0_5px] [&_.section-intro_>_p]:[color:#82808a] [&_.section-intro_>_p]:[font-size:var(--font-size-body)] [&_.section-intro_>_p]:[line-height:1.7] [&_.benefit-grid]:[display:grid]
-  [&_.benefit-grid]:[grid-template-columns:repeat(3,_minmax(0,_1fr))] [&_.benefit-grid]:[gap:14px] [&_.benefit-card]:[min-height:173px] [&_.benefit-card]:[position:relative] [&_.benefit-card]:[padding:19px]
-  [&_.benefit-card]:[border:1px_solid_#e6e4ed] [&_.benefit-card]:[border-radius:9px] [&_.benefit-card]:[background:#fff] [&_.benefit-card]:[transition:transform_.18s,_box-shadow_.18s] [&_.benefit-card:hover]:[transform:translateY(-3px)]
-  [&_.benefit-card:hover]:[box-shadow:0_14px_35px_#29233d0d] [&_.benefit-icon]:[width:35px] [&_.benefit-icon]:[height:35px] [&_.benefit-icon]:[display:grid] [&_.benefit-icon]:[place-items:center]
-  [&_.benefit-icon]:[border-radius:9px] [&_.benefit-icon.mint]:[color:#3a9988] [&_.benefit-icon.mint]:[background:#e3f5ef] [&_.benefit-icon.violet]:[color:#7456da] [&_.benefit-icon.violet]:[background:#eee9ff]
-  [&_.benefit-icon.coral]:[color:#c77762] [&_.benefit-icon.coral]:[background:#ffede6] [&_.benefit-number]:[position:absolute] [&_.benefit-number]:[top:21px] [&_.benefit-number]:[right:19px]
-  [&_.benefit-number]:[color:#c2bfca] [&_.benefit-number]:[font:700_9px_Manrope,_sans-serif] [&_.benefit-card_h3]:[margin:18px_0_6px] [&_.benefit-card_h3]:[font:700_13px_Manrope,_sans-serif] [&_.benefit-card_h3]:[letter-spacing:-.2px]
-  [&_.benefit-card_p]:[max-width:265px] [&_.benefit-card_p]:[margin:0] [&_.benefit-card_p]:[color:#85838d] [&_.benefit-card_p]:[font-size:var(--font-size-small)] [&_.benefit-card_p]:[line-height:1.65]
+  [&_.benefit-grid]:[grid-template-columns:repeat(3,_minmax(0,_1fr))] [&_.benefit-grid]:[gap:16px] [&_.benefit-card]:[min-height:230px] [&_.benefit-card]:[position:relative] [&_.benefit-card]:[overflow:hidden] [&_.benefit-card]:[padding:24px]
+  [&_.benefit-card]:[border:1px_solid_#ffffff24] [&_.benefit-card]:[border-radius:14px] [&_.benefit-card]:[background:linear-gradient(145deg,_#1b1a2beb,_#11111bd9)] [&_.benefit-card]:[backdrop-filter:blur(12px)] [&_.benefit-card]:[box-shadow:0_14px_40px_#0003]
+  [&_.benefit-card]:[transition:border-color_.25s,_box-shadow_.25s] [&_.benefit-card:hover]:[border-color:#ffffff55] [&_.benefit-card:hover]:[box-shadow:0_22px_48px_#0006]
+  [&_.benefit-card-top]:[position:relative] [&_.benefit-card-top]:[z-index:1] [&_.benefit-card-top]:[display:flex] [&_.benefit-card-top]:[align-items:center] [&_.benefit-card-top]:[justify-content:space-between]
+  [&_.benefit-icon]:[width:46px] [&_.benefit-icon]:[height:46px] [&_.benefit-icon]:[display:grid] [&_.benefit-icon]:[place-items:center] [&_.benefit-icon]:[border-radius:13px]
+  [&_.benefit-icon]:[border:1px_solid_#ffffff1c] [&_.benefit-icon.mint]:[color:#72e0ce] [&_.benefit-icon.mint]:[background:#3bbca51f] [&_.benefit-icon.violet]:[color:#c0aaff] [&_.benefit-icon.violet]:[background:#8b69e624]
+  [&_.benefit-icon.coral]:[color:#ffb39c] [&_.benefit-icon.coral]:[background:#e985671f] [&_.benefit-number]:[color:#cbc6d7] [&_.benefit-number]:[font:700_10px_Manrope,_sans-serif] [&_.benefit-card-label]:[position:relative]
+  [&_.benefit-card-label]:[z-index:1] [&_.benefit-card-label]:[display:block] [&_.benefit-card-label]:[margin-top:22px] [&_.benefit-card-label]:[color:#b9a6ff] [&_.benefit-card-label]:[font-size:0.625rem] [&_.benefit-card-label]:[font-weight:700]
+  [&_.benefit-card-label]:[letter-spacing:1.1px] [&_.benefit-card_h3]:[position:relative] [&_.benefit-card_h3]:[z-index:1] [&_.benefit-card_h3]:[margin:7px_0_8px] [&_.benefit-card_h3]:[color:#fff]
+  [&_.benefit-card_h3]:[font:700_17px/1.4_Manrope,_sans-serif] [&_.benefit-card_h3]:[letter-spacing:-.35px] [&_.benefit-card_p]:[position:relative] [&_.benefit-card_p]:[z-index:1]
+  [&_.benefit-card_p]:[max-width:310px] [&_.benefit-card_p]:[margin:0] [&_.benefit-card_p]:[color:#d0ccdb] [&_.benefit-card_p]:[font-size:var(--font-size-small)] [&_.benefit-card_p]:[line-height:1.7]
+  [&_.benefit-card-glow]:[position:absolute] [&_.benefit-card-glow]:[right:-55px] [&_.benefit-card-glow]:[bottom:-90px] [&_.benefit-card-glow]:[width:200px] [&_.benefit-card-glow]:[height:200px]
+  [&_.benefit-card-glow]:[border-radius:50%] [&_.benefit-card-glow]:[background:radial-gradient(circle,_#8f79df1c,_transparent_70%)] [&_.benefit-card-glow]:[pointer-events:none]
+  [&_.learning-section_.landing-kicker]:[color:#d5d0e0] [&_.learning-section_.section-intro_h2_span]:[color:#b9a6ff] [&_.learning-section_.section-intro_>_p]:[color:#d2ceda]
   [&_.courses-landing]:[color:#f8f6ff] [&_.courses-landing]:[background:#10101b] [&_.courses-intro]:[align-items:flex-end] [&_.courses-intro_h2_span]:[color:#b6a3ff] [&_.all-courses-link]:[display:inline-flex]
   [&_.all-courses-link]:[align-items:center] [&_.all-courses-link]:[gap:8px] [&_.all-courses-link]:[margin-bottom:5px] [&_.all-courses-link]:![color:#bfb0ff] [&_.all-courses-link]:[font-size:var(--font-size-small)]
   [&_.all-courses-link]:[font-weight:700] [&_.catalog-note]:[margin:-13px_0_16px] [&_.catalog-note]:[color:#a8a4b3] [&_.catalog-note]:[font-size:var(--font-size-caption)] [&_.featured-courses]:[display:grid]
@@ -153,10 +176,7 @@ const homeTailwindStyles = `
   [&_.closing-cta_>_button]:[align-items:center] [&_.closing-cta_>_button]:[gap:9px] [&_.closing-cta_>_button]:[min-height:40px] [&_.closing-cta_>_button]:[margin-top:19px] [&_.closing-cta_>_button]:[padding:0_14px]
   [&_.closing-cta_>_button]:[border:1px_solid_#c9bbff] [&_.closing-cta_>_button]:[border-radius:6px] [&_.closing-cta_>_button]:[background:#c9bbff] [&_.closing-cta_>_button]:[color:#241e37] [&_.closing-cta_>_button]:[font-size:var(--font-size-small)]
   [&_.closing-cta_>_button]:[font-weight:700] [&_.closing-cta_>_button]:[transition:.18s] [&_.cta-decoration]:[position:absolute] [&_.cta-decoration]:[top:-143px] [&_.cta-decoration]:[left:50%]
-  [&_.cta-decoration]:[color:#ffffff05] [&_.cta-decoration]:[font:800_420px_Manrope,_sans-serif] [&_.cta-decoration]:[line-height:1] [&_.cta-decoration]:[transform:translateX(-50%)] [&_.marketing-footer]:[min-height:75px]
-  [&_.marketing-footer]:[display:flex] [&_.marketing-footer]:[align-items:center] [&_.marketing-footer]:[gap:22px] [&_.marketing-footer]:[padding:17px_clamp(20px,_6vw,_94px)] [&_.marketing-footer]:[background:#10101b]
-  [&_.marketing-footer_>_span]:[color:#9793a1] [&_.marketing-footer_>_span]:[font-size:var(--font-size-caption)] [&_.marketing-footer_>_div]:[display:flex] [&_.marketing-footer_>_div]:[gap:17px] [&_.marketing-footer_>_div]:[margin-left:auto]
-  [&_.marketing-footer_>_div_a]:[color:#b0acba] [&_.marketing-footer_>_div_a]:[font-size:var(--font-size-caption)] [&_.marketing-footer_small]:[color:#777482] [&_.marketing-footer_small]:[font-size:0.6875rem] [&_.marketing-footer_small]:[white-space:nowrap]
+  [&_.cta-decoration]:[color:#ffffff05] [&_.cta-decoration]:[font:800_420px_Manrope,_sans-serif] [&_.cta-decoration]:[line-height:1] [&_.cta-decoration]:[transform:translateX(-50%)]
   [&_.marketing-toast]:[position:fixed] [&_.marketing-toast]:[z-index:42] [&_.marketing-toast]:[right:20px] [&_.marketing-toast]:[bottom:20px] [&_.marketing-toast]:[display:flex]
   [&_.marketing-toast]:[align-items:center] [&_.marketing-toast]:[gap:9px] [&_.marketing-toast]:[max-width:min(400px,_calc(100vw_-_32px))] [&_.marketing-toast]:[padding:11px_12px] [&_.marketing-toast]:[border:1px_solid_#ffffff21]
   [&_.marketing-toast]:[border-radius:7px] [&_.marketing-toast]:[background:#242135] [&_.marketing-toast]:[box-shadow:0_12px_35px_#0005] [&_.marketing-toast]:[color:#efedf6] [&_.marketing-toast]:[font-size:var(--font-size-small)]
@@ -191,23 +211,33 @@ const homeTailwindStyles = `
   [@media((max-width:720px))]:[&_.benefit-card]:[min-height:140px] [@media((max-width:720px))]:[&_.featured-courses]:[grid-template-columns:repeat(2,_minmax(0,_1fr))] [@media((max-width:720px))]:[&_.featured-courses]:[gap:9px] [@media((max-width:720px))]:[&_.featured-course:last-child]:[grid-column:1_/_-1] [@media((max-width:720px))]:[&_.featured-course:last-child_.featured-image]:[height:190px]
   [@media((max-width:720px))]:[&_.featured-image]:[height:133px] [@media((max-width:720px))]:[&_.featured-info]:[padding:11px] [@media((max-width:720px))]:[&_.featured-info_h3]:[font-size:var(--font-size-small)] [@media((max-width:720px))]:[&_.featured-meta]:[align-items:flex-start] [@media((max-width:720px))]:[&_.featured-meta]:[gap:6px]
   [@media((max-width:720px))]:[&_.featured-meta]:[font-size:0.6875rem] [@media((max-width:720px))]:[&_.course-bottom-cta]:[align-items:flex-start] [@media((max-width:720px))]:[&_.course-bottom-cta]:[flex-direction:column] [@media((max-width:720px))]:[&_.story-section]:[grid-template-columns:1fr] [@media((max-width:720px))]:[&_.story-section]:[gap:27px]
-  [@media((max-width:720px))]:[&_.story-section]:[padding:62px_23px] [@media((max-width:720px))]:[&_.story-image]:[height:265px] [@media((max-width:720px))]:[&_.marketing-footer]:[flex-wrap:wrap] [@media((max-width:720px))]:[&_.marketing-footer]:[gap:13px_19px] [@media((max-width:720px))]:[&_.marketing-footer]:[padding:17px_20px]
-  [@media((max-width:720px))]:[&_.marketing-footer_>_span]:[order:2] [@media((max-width:720px))]:[&_.marketing-footer_>_span]:[width:100%] [@media((max-width:720px))]:[&_.marketing-footer_>_div]:[margin-left:auto] [@media((max-width:720px))]:[&_.marketing-footer_small]:[order:3] [@media((max-width:720px))]:[&_.marketing-footer_small]:[width:100%]
+  [@media((max-width:720px))]:[&_.story-section]:[padding:62px_23px] [@media((max-width:720px))]:[&_.story-image]:[height:265px]
   [@media((max-width:400px))]:[&_.hero-announcement]:[font-size:7px] [@media((max-width:400px))]:[&_.hero-actions]:[align-items:flex-start] [@media((max-width:400px))]:[&_.hero-actions]:[flex-direction:column] [@media((max-width:400px))]:[&_.featured-courses]:[grid-template-columns:1fr] [@media((max-width:400px))]:[&_.featured-course:last-child]:[grid-column:auto]
-  [@media((max-width:400px))]:[&_.featured-image]:[height:175px] [@media((max-width:400px))]:[&_.featured-course:last-child_.featured-image]:[height:175px] [@media((max-width:400px))]:[&_.marketing-footer_>_div]:[gap:9px] [&_.hero-content_h1]:[font-size:clamp(2rem,_4.1vw,_4.25rem)] [&_.trust-stats_>_div_>_strong]:[font-size:1.625rem]
+  [@media((max-width:400px))]:[&_.featured-image]:[height:175px] [@media((max-width:400px))]:[&_.featured-course:last-child_.featured-image]:[height:175px] [&_.hero-content_h1]:[font-size:clamp(2rem,_4.1vw,_4.25rem)] [&_.trust-stats_>_div_>_strong]:[font-size:1.625rem]
   [&_.section-intro_h2]:[font-size:clamp(2rem,_4vw,_2.75rem)] [&_.section-intro_h2]:[line-height:1.15] [&_.story-copy_h2]:[line-height:1.15] [&_.benefit-number]:[font-size:var(--font-size-caption)] [&_.benefit-card_h3]:[font-size:var(--font-size-title)]
   [&_.course-bottom-cta_a]:[font-size:var(--font-size-small)] [&_.featured-info_h3]:[font-size:var(--font-size-title)] [&_.featured-info_h3]:[line-height:1.4] [&_.story-quote_blockquote]:[font-size:var(--font-size-small)] [&_.story-quote_blockquote]:[line-height:1.65]
-  [&_.closing-cta_h2]:[line-height:1.12] [&_.auth-modal_h2]:[font-size:var(--font-size-title)] [@media((max-width:720px))]:[&_.section-intro_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)] [@media((max-width:720px))]:[&_.story-copy_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)] [@media((max-width:720px))]:[&_.marketing-footer_>_div_a]:[font-size:0.6875rem]
+  [&_.closing-cta_h2]:[line-height:1.12] [&_.auth-modal_h2]:[font-size:var(--font-size-title)] [@media((max-width:720px))]:[&_.section-intro_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)] [@media((max-width:720px))]:[&_.story-copy_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)]
   [@media((max-height:600px))]:[&_.landing-hero]:[height:calc(100svh_-_90px)] [@media((max-height:600px))]:[&_.landing-hero]:[padding-top:12px] [@media((max-height:600px))]:[&_.landing-hero]:[padding-bottom:12px] [@media((max-height:600px))]:[&_.hero-content]:[transform:none] [@media((max-height:600px))]:[&_.hero-content_h1]:[margin-top:8px]
   [@media((max-height:600px))]:[&_.hero-content_h1]:[margin-bottom:10px] [@media((max-height:600px))]:[&_.hero-content_h1]:[font-size:clamp(2rem,_8vh,_3rem)] [@media((max-height:600px))]:[&_.hero-description]:[font-size:1rem] [@media((max-height:600px))]:[&_.hero-description]:[line-height:1.4] [@media((max-height:600px))]:[&_.hero-actions]:[gap:10px]
   [@media((max-height:600px))]:[&_.hero-actions]:[margin-top:12px] [@media((max-height:600px))]:[&_.hero-scroll]:[bottom:8px] [@media((max-height:600px))]:[&_.hero-index]:[bottom:8px] [@media((max-height:600px)_and_(max-width:720px))]:[&_.landing-hero]:[height:calc(100svh_-_62px)]
 `;
 
 function HomePage() {
-  const [selectedProgram, setSelectedProgram] = useState('bim');
+  const [activeGuidanceSlide, setActiveGuidanceSlide] = useState(0);
   const [authMode, setAuthMode] = useState('');
   const [notice, setNotice] = useState('');
   const partnerTrackRef = useRef(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (shouldReduceMotion) return undefined;
+
+    const timer = window.setInterval(() => {
+      setActiveGuidanceSlide((current) => (current + 1) % courseGuidanceSlides.length);
+    }, 4500);
+
+    return () => window.clearInterval(timer);
+  }, [shouldReduceMotion]);
 
   useEffect(() => {
     const track = partnerTrackRef.current;
@@ -285,76 +315,115 @@ function HomePage() {
           <div className="trust-stats"><div><strong>12k<span>+</span></strong><span>curious learners</span></div><i /><div><strong>40<span>+</span></strong><span>expert-led courses</span></div><i /><div><strong>92<span>%</span></strong><span>finish what they start</span></div><i /><div className="trust-partner">BUILT FOR <strong>WHAT'S NEXT <ArrowUpRight size={13} /></strong></div></div>
         </section>
 
-        <section className="landing-section learning-section" id="how-it-works">
-          <div className="section-intro"><div><div className="landing-kicker"><span /> A BETTER WAY TO GROW</div><h2>Not just more learning.<br /><span>Learning that goes somewhere.</span></h2></div><p>We bring the right people, useful skills, and real practice together—so your next step feels a little closer.</p></div>
-          <div className="benefit-grid">{benefits.map(({ icon: Icon, title, text, tone }, index) => <article className="benefit-card" key={title}><div className={`benefit-icon ${tone}`}><Icon size={20} /></div><span className="benefit-number">0{index + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
+        <section
+          className="landing-section learning-section"
+          id="how-it-works"
+          style={{
+            backgroundImage: "linear-gradient(rgba(12, 11, 20, 0.72), rgba(12, 11, 20, 0.72)), url('/learning-section-bg.jpg')",
+            backgroundAttachment: 'fixed',
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.28)',
+          }}
+        >
+          <div className="section-intro"><div><h2>Not just more learning.<br /><span>Learning that goes somewhere.</span></h2></div><p>We bring the right people, useful skills, and real practice together—so your next step feels a little closer.</p></div>
+          <motion.div
+            className="benefit-grid"
+            variants={benefitGridVariants}
+            initial={shouldReduceMotion ? false : 'hidden'}
+            whileInView={shouldReduceMotion ? undefined : 'visible'}
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {benefits.map(({ icon: Icon, label, title, text, tone }) => (
+              <motion.article
+                className="benefit-card"
+                key={title}
+                variants={benefitCardVariants}
+                whileHover={shouldReduceMotion ? undefined : { y: -7, scale: 1.015 }}
+              >
+                <span className="benefit-card-glow" aria-hidden="true" />
+                <div className="benefit-card-top">
+                  <div className={`benefit-icon ${tone}`}><Icon size={21} strokeWidth={1.8} /></div>
+                </div>
+                <span className="benefit-card-label">{label}</span>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </motion.article>
+            ))}
+          </motion.div>
         </section>
 
-        <section className="landing-section courses-landing !px-[clamp(20px,7vw,100px)] !py-[72px] max-[720px]:!px-[20px] max-[720px]:!py-[52px]" id="courses">
+        <section
+          className="landing-section courses-landing !px-[clamp(20px,7vw,100px)] !py-[72px] max-[720px]:!px-[20px] max-[720px]:!py-[52px]"
+          id="courses"
+          style={{
+            backgroundImage: "linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url('/courses-section-bg.jpg')",
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+          }}
+        >
           <div className="mx-auto mb-7 max-w-[650px] text-center">
-            <div className="mb-3 flex items-center justify-center gap-2 text-[10px] font-bold tracking-[.18em] text-[#c2b2ff]"><span className="h-px w-6 bg-[#8d79db]" /> OUR COURSES <span className="h-px w-6 bg-[#8d79db]" /></div>
-            <h2 className="m-0 font-[Manrope] text-[clamp(1.7rem,3vw,2.5rem)] font-bold leading-tight tracking-[-.04em] text-[#f7f5ff]">The future of AEC begins with you</h2>
-            <p className="mx-auto mb-0 mt-3 max-w-[560px] text-[13px] leading-relaxed text-[#aaa6b8]">Build in-demand skills through practical programs designed for the architecture, engineering, and construction industry.</p>
+            <div className="mb-3 flex items-center justify-center gap-3 text-base font-bold tracking-[.18em] text-[#f4f1ff]"><span className="h-px w-8 bg-gradient-to-r from-transparent via-[#b6a3ff] to-transparent" /> OUR COURSES <span className="h-px w-8 bg-gradient-to-r from-transparent via-[#b6a3ff] to-transparent" /></div>
+            <h2 className="m-0 font-[Manrope] text-[clamp(1.8125rem,4vw,2.75rem)] font-bold leading-[1.12] tracking-[-.045em] text-[#f7f5ff]">The future of AEC begins with you</h2>
+            <p className="mx-auto mb-0 mt-3 max-w-[560px] text-base leading-[1.7] text-[#aaa6b8]">Build in-demand skills through practical programs designed for the architecture, engineering, and construction industry.</p>
           </div>
 
-          <div className="mx-auto mb-5 flex w-fit rounded-full border border-white/15 bg-[#0b0b13]/80 p-1" role="tablist" aria-label="Course programs">
-            {Object.entries(coursePrograms).map(([key, program]) => (
-              <button
-                key={key}
-                id={`program-tab-${key}`}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${selectedProgram === key ? 'bg-[#353044] text-white' : 'text-[#a7a3b2] hover:text-white'}`}
-                type="button"
-                role="tab"
-                aria-selected={selectedProgram === key}
-                aria-controls="program-panel"
-                onClick={() => setSelectedProgram(key)}
+          <div className="mx-auto grid w-full max-w-[1180px] grid-cols-3 gap-6 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 max-[640px]:gap-5">
+            {bimPrograms.map(({ duration, hours, price, rating, description }, index) => (
+              <motion.article
+                key={duration}
+                className="overflow-hidden rounded-xl border border-[#6d5bd8]/50 bg-[#201e3d] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                whileHover={shouldReduceMotion ? undefined : { y: -5 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : index * 0.08 }}
               >
-                {program.label}
-              </button>
+                <div className="p-6 pb-0">
+                  <h3 className="m-0 font-[Manrope] text-xl font-bold text-white">BIM Professional Program</h3>
+                  <p className="mb-0 mt-2 min-h-10 text-sm leading-5 text-[#c8c3d6]">{description}</p>
+                  <span className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-100">Sample details</span>
+                </div>
+                <div className="program-image-wrap group/image relative mt-5 h-[150px] overflow-hidden bg-[#26243c]">
+                  <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={bimProgramImage} alt="" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-3 border-y border-white/10 py-3">
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#f2efff]">{hours}</span></div>
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#f2efff]">{duration}</span></div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Sample price</span>
+                      <span className="mt-1 block text-xl font-bold text-white">{price}</span>
+                    </div>
+                    <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#39365f] px-4 text-sm font-bold text-white transition-colors hover:bg-[#494477]" href="/dashboard">
+                      Enroll now <ArrowUpRight size={14} />
+                    </a>
+                  </div>
+                  <div className="mt-4 flex items-center gap-1.5 text-sm text-[#d0ccdb]" aria-label={`Sample course rating ${rating} out of 5`}>
+                    <Star size={15} className="fill-amber-300 text-amber-300" aria-hidden="true" />
+                    <span className="font-bold text-white">{rating}</span>
+                    <span>Sample rating</span>
+                  </div>
+                  <div className="mt-2 text-[10px] leading-4 text-[#aaa5bd]">Hours, price and rating are placeholders. Confirm actual details before publishing.</div>
+                </div>
+              </motion.article>
             ))}
           </div>
-
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.article
-              key={selectedProgram}
-              id="program-panel"
-              className="mx-auto w-full max-w-[430px] overflow-hidden rounded-xl border border-[#6d5bd8]/50 bg-[#201e3d] shadow-[0_18px_55px_#0005]"
-              role="tabpanel"
-              aria-labelledby={`program-tab-${selectedProgram}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-            >
-              <div className="relative h-[190px] overflow-hidden bg-[#26243c]">
-                <img className="h-full w-full object-cover" src={coursePrograms[selectedProgram].image} alt="" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />
-                <span className="absolute left-3 top-3 rounded-full bg-[#d44dca] px-2.5 py-1 text-[10px] font-bold text-white">Flagship Program</span>
-              </div>
-              <div className="p-5">
-                <h3 className="m-0 font-[Manrope] text-lg font-bold text-white">{coursePrograms[selectedProgram].title}</h3>
-                <div className="mt-4 grid grid-cols-2 gap-3 border-y border-white/10 py-3">
-                  <div><span className="block text-[9px] font-bold uppercase tracking-wider text-[#aaa5bd]">Program focus</span><span className="mt-1 block text-xs font-semibold text-[#f2efff]">{coursePrograms[selectedProgram].focus}</span></div>
-                  <div><span className="block text-[9px] font-bold uppercase tracking-wider text-[#aaa5bd]">Learning format</span><span className="mt-1 block text-xs font-semibold text-[#f2efff]">{coursePrograms[selectedProgram].format}</span></div>
-                </div>
-                <a className="mt-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#39365f] text-xs font-bold text-white transition-colors hover:bg-[#494477]" href="/dashboard">
-                  Learn more <ArrowUpRight size={14} />
-                </a>
-              </div>
-            </motion.article>
-          </AnimatePresence>
 
           <div className="mx-auto mt-14 max-w-[920px]">
             <div className="mb-5 text-center">
               <h3 className="m-0 font-[Manrope] text-xl font-bold tracking-tight text-[#f4f1ff]">Skill development that drives results</h3>
-              <p className="mb-0 mt-2 text-xs text-[#aaa6b8]">Make today’s most in-demand skills work for your next career move.</p>
+              <p className="mb-0 mt-2 text-sm text-[#aaa6b8]">Make today’s most in-demand skills work for your next career move.</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 max-[720px]:grid-cols-1">
+            <div className="grid grid-cols-3 gap-x-6 gap-y-5 max-[720px]:grid-cols-1 max-[720px]:gap-4">
               {courseOutcomes.map(({ icon: Icon, title, text }) => (
                 <article key={title} className="rounded-lg border border-white/[0.08] bg-[#14141f] p-4">
                   <Icon className="text-[#36d6b1]" size={19} aria-hidden="true" />
-                  <h4 className="mb-1 mt-3 text-xs font-bold text-white">{title}</h4>
-                  <p className="m-0 text-[11px] leading-relaxed text-[#aaa7b5]">{text}</p>
+                  <h4 className="mb-1 mt-3 text-base font-bold text-white">{title}</h4>
+                  <p className="m-0 text-sm leading-relaxed text-[#aaa7b5]">{text}</p>
                 </article>
               ))}
             </div>
@@ -362,28 +431,111 @@ function HomePage() {
         </section>
 
         <section className="story-section" id="stories">
-          <div className="story-image"><img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=85" alt="Learners sharing ideas around a table" /><div className="story-image-tag"><span /> REAL PEOPLE. REAL PROGRESS.</div></div>
+          <div className="story-image"><img src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=85" alt="Learners sharing ideas around a table" /></div>
           <div className="story-copy"><div className="landing-kicker"><span /> MADE FOR YOUR MOMENT</div><h2>Your next chapter<br />doesn’t write <span>itself.</span></h2><p>Start with one skill. Find your people. Make a little progress every week. You don’t need it all figured out to begin.</p><div className="story-quote"><div className="quote-stars"><Star size={13} fill="currentColor" /><Star size={13} fill="currentColor" /><Star size={13} fill="currentColor" /><Star size={13} fill="currentColor" /><Star size={13} fill="currentColor" /></div><blockquote>“I stopped waiting until I felt ready. The projects helped me prove I already was.”</blockquote><span>RIYA M. · PRODUCT DESIGNER</span></div><a href="/dashboard" className="story-link">Start learning <ArrowRight size={15} /></a></div>
         </section>
 
-        <section className="closing-cta"><div className="cta-decoration">S</div><div className="landing-kicker"><span /> THE FIRST STEP IS YOURS</div><h2>Curiosity looks good<br />on <span>you.</span></h2><p>Find a course, meet a mentor, and see what you can make happen.</p><button onClick={() => setAuthMode('join')}>Join Skillpath <ArrowUpRight size={16} /></button></section>
+        <motion.section
+          className="relative overflow-hidden px-[clamp(25px,9.2vw,145px)] py-12 max-[720px]:px-[23px] max-[720px]:py-8"
+          style={{
+            backgroundColor: '#10101b',
+          }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 22 }}
+          whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
+            <div
+              className="pointer-events-none absolute inset-[-12px] scale-[1.03] bg-cover bg-center blur-[8px]"
+              style={{
+                backgroundImage: 'linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url("/course-guidance-bg.jpg")',
+              }}
+              aria-hidden="true"
+            />
+            <div className="pointer-events-none absolute -left-24 -top-24 size-80 rounded-full bg-[#7c5cff]/15 blur-[90px]" aria-hidden="true" />
+            <div className="pointer-events-none absolute -bottom-28 right-0 size-96 rounded-full bg-[#2fd4b8]/10 blur-[110px]" aria-hidden="true" />
+
+            <div className="relative z-10 grid grid-cols-[1.05fr_.95fr] items-center gap-10 py-8 max-[960px]:grid-cols-1 max-[960px]:gap-8 max-[720px]:py-4">
+              <div>
+                <h2 className="mb-0 font-[Manrope] text-[clamp(1.8rem,3.6vw,2.7rem)] font-bold leading-[1.12] tracking-[-.045em] text-white">
+                  Not sure where to begin?{' '}
+                  <span className="bg-gradient-to-r from-[#c4b3ff] to-[#7ae8d5] bg-clip-text text-transparent">
+                    We’ll map your path.
+                  </span>
+                </h2>
+                <p className="mb-0 mt-4 max-w-[540px] text-base leading-[1.75] text-[#c5c1d3]">
+                  Tell us what you want to learn and where you’re starting from. Our team can help
+                  you find a program that fits your experience and career goals.
+                </p>
+                <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <a
+                    href="https://wa.me/?text=Hi%2C%20I%27d%20like%20help%20choosing%20a%20course%20that%20fits%20my%20goals."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group inline-flex min-h-12 items-center gap-2.5 rounded-xl bg-white px-6 text-sm font-bold !text-[#49358a] shadow-[0_10px_30px_#0003] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f1edff] hover:shadow-[0_14px_36px_#0005] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white max-[480px]:w-full max-[480px]:justify-center"
+                  >
+                    <PhoneCall size={17} aria-hidden="true" />
+                    Request a call
+                  </a>
+                  <a
+                    href="#courses"
+                    className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/[0.04] px-5 text-sm font-semibold !text-[#e6e1ff] transition-colors hover:border-white/40 hover:bg-white/10 max-[480px]:w-full max-[480px]:justify-center"
+                  >
+                    Explore programs
+                  </a>
+                </div>
+              </div>
+
+              <div
+                className="relative aspect-[4/3] min-h-[250px] overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b13] shadow-[0_18px_48px_#0005] max-[960px]:aspect-[16/8] max-[720px]:aspect-[4/3]"
+                role="region"
+                aria-label="Course guidance image carousel"
+                aria-roledescription="carousel"
+              >
+                <AnimatePresence initial={false} mode="sync">
+                  <motion.img
+                    key={courseGuidanceSlides[activeGuidanceSlide].src}
+                    src={courseGuidanceSlides[activeGuidanceSlide].src}
+                    alt={courseGuidanceSlides[activeGuidanceSlide].alt}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    initial={shouldReduceMotion ? false : { x: '100%' }}
+                    animate={{ x: 0 }}
+                    exit={shouldReduceMotion ? undefined : { x: '-100%' }}
+                    whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+                    transition={{ duration: shouldReduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+                    draggable="false"
+                  />
+                </AnimatePresence>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#080813]/55 to-transparent" aria-hidden="true" />
+                <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2" role="group" aria-label="Choose a course guidance image">
+                  {courseGuidanceSlides.map((slide, index) => (
+                    <button
+                      key={slide.src}
+                      type="button"
+                      className={`h-2.5 rounded-full transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white ${activeGuidanceSlide === index ? 'w-8 bg-white' : 'w-2.5 bg-white/60 hover:bg-white/90'}`}
+                      aria-label={`Show image ${index + 1}`}
+                      aria-pressed={activeGuidanceSlide === index}
+                      onClick={() => setActiveGuidanceSlide(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+        </motion.section>
+
       </main>
 
       <a
-        className="fixed bottom-[130px] right-[5%] z-30 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 font-semibold text-white shadow-lg transition-transform hover:scale-105 max-[720px]:bottom-[92px] max-[720px]:right-4"
+        className="fixed bottom-5 right-16 z-30 block size-16 max-w-[42vw] overflow-hidden rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-[0_0_24px_#25d36699] active:scale-95 max-[720px]:bottom-5 max-[720px]:right-16"
         href="https://wa.me/?text=Hi%2C%20I%27d%20like%20to%20know%20more%20about%20your%20courses."
         target="_blank"
         rel="noreferrer"
         aria-label="Chat with us on WhatsApp"
       >
-        <span className="relative inline-flex">
-          <MessageCircle size={22} aria-hidden="true" />
-          <PhoneCall className="absolute left-[5px] top-[5px]" size={12} aria-hidden="true" />
-        </span>
-        <span>Chat with us</span>
+        <video className="block h-full w-full scale-[1.8] object-cover object-center" src="/Whatsapp.mp4" autoPlay loop muted playsInline aria-hidden="true" />
       </a>
 
-      <footer className="marketing-footer"><a className="inline-flex items-center gap-[9px] font-[Manrope] text-[15px] font-extrabold tracking-[-.8px] text-[#fbfaff] no-underline" href="/" aria-label="Skillpath home"><span className="grid size-[26px] place-items-center rounded-[8px] bg-[#7658e8] text-white"><GraduationCap size={18} /></span><span>skillpath<span className="text-[#b19dff]">.</span></span></a><span>Good things happen when you keep learning.</span><div><a href="#courses">Courses</a><a href="#how-it-works">How it works</a><a href="#stories">Our learners</a></div><small>© 2026 Skillpath Learning, Inc.</small></footer>
+      <Footer />
 
       {notice && <div className="marketing-toast"><Check size={16} />{notice}<button aria-label="Dismiss message" onClick={() => setNotice('')}><X size={15} /></button></div>}
       {authMode && <div className="auth-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthMode(''); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="auth-close" aria-label="Close dialog" onClick={() => setAuthMode('')}><X size={17} /></button><div className="auth-symbol"><GraduationCap size={22} /></div><div className="landing-kicker"><span /> YOUR NEXT CHAPTER</div><h2 id="auth-title">{authMode === 'login' ? 'Welcome back.' : 'Make room for what’s next.'}</h2><p>{authMode === 'login' ? 'Pick up right where you left off.' : 'Create your free account and start exploring.'}</p><form onSubmit={submitAuth}><label>Email address<input type="email" placeholder="you@example.com" autoComplete="email" required /></label><label>Password<input type="password" placeholder="At least 8 characters" minLength="8" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required /></label><button className="auth-submit" type="submit">{authMode === 'login' ? 'Login' : 'Join now'} <ArrowRight size={15} /></button></form><div className="auth-demo-note">Demo form only — account authentication isn’t connected yet.</div><button className="auth-switch" onClick={() => setAuthMode(authMode === 'login' ? 'join' : 'login')}>{authMode === 'login' ? 'New to Skillpath? Join now' : 'Already learning with us? Login'}</button></section></div>}

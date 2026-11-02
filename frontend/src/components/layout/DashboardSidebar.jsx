@@ -21,14 +21,18 @@ const categories = [
 ];
 
 function DashboardSidebar({
-  activeNav,
-  activeCategory,
-  classes,
-  menuOpen,
-  onNavSelect,
-  onCategorySelect,
-  onNotify,
+  activeNav = 'Overview',
+  activeCategory = 'All courses',
+  classes = [],
+  menuOpen = false,
+  onNavSelect = () => {},
+  onCategorySelect = () => {},
+  onNotify = () => {},
 }) {
+  const liveClassCount = Array.isArray(classes)
+    ? classes.filter((item) => item?.date === 'Today').length
+    : 0;
+
   return (
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <a className="brand" href="/" aria-label="Skillpath home">
@@ -38,16 +42,26 @@ function DashboardSidebar({
       <div className="sidebar-label">MENU</div>
       <nav className="side-nav" aria-label="Main navigation">
         {navItems.map(({ label, icon: Icon }) => (
-          <button key={label} onClick={() => onNavSelect(label)} className={`nav-item ${activeNav === label ? 'active' : ''}`}>
+          <button
+            key={label}
+            type="button"
+            onClick={() => onNavSelect(label)}
+            className={`nav-item ${activeNav === label ? 'active' : ''}`}
+          >
             <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
-            {label === 'Live classes' && <span className="nav-count">{classes.filter((item) => item.date === 'Today').length}</span>}
+            {label === 'Live classes' && <span className="nav-count">{liveClassCount}</span>}
           </button>
         ))}
       </nav>
       <div className="sidebar-label category-label">CATEGORIES</div>
       <nav className="side-nav category-nav" aria-label="Course categories">
         {categories.map(({ name, icon: Icon }) => (
-          <button key={name} onClick={() => onCategorySelect(name)} className={`nav-item ${activeCategory === name && activeNav === 'Explore courses' ? 'active' : ''}`}>
+          <button
+            key={name}
+            type="button"
+            onClick={() => onCategorySelect(name)}
+            className={`nav-item ${activeCategory === name && activeNav === 'Explore courses' ? 'active' : ''}`}
+          >
             <Icon size={17} strokeWidth={1.8} /><span>{name}</span>
           </button>
         ))}
@@ -57,9 +71,9 @@ function DashboardSidebar({
         <div className="help-icon"><Headphones size={17} /></div>
         <strong>Need a hand?</strong>
         <p>Our team is here to help you learn.</p>
-        <button onClick={() => onNotify('Support team: hello@skillpath.learn')}>Get support <ArrowRight size={14} /></button>
+        <button type="button" onClick={() => onNotify('Support team: hello@skillpath.learn')}>Get support <ArrowRight size={14} /></button>
       </div>
-      <button className="profile-button" onClick={() => onNotify('Account settings coming soon.')}>
+      <button type="button" className="profile-button" onClick={() => onNotify('Account settings coming soon.')}> 
         <span className="avatar avatar-user">AK</span>
         <span className="profile-copy"><strong>Arjun Kumar</strong><span>Free plan</span></span>
         <MoreHorizontal size={19} className="profile-more" />

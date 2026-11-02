@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,frontend -c cyan,green \"npm run dev --workspace @skillpath/backend\" \"npm run dev:client\"",
+    "dev": "vite --host 127.0.0.1",
     "dev:client": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1"

@@ -52,9 +52,9 @@ The workspace starts all three services:
 | Admin dashboard | http://127.0.0.1:5174 |
 | Backend API | http://127.0.0.1:3001/api/health |
 
-Both Vite apps proxy `/api` requests to the backend. Run one part at a time with `npm run dev:frontend`, `npm run dev:admin`, or `npm run dev:backend`.
+Both Vite apps proxy `/api` requests to the backend. Start individual parts from the project root with `npm run dev:frontend`, `npm run dev:admin`, or `npm run dev:backend`. You can also run `npm run dev` from inside `frontend/` or `admin/` to start only that app, and from inside `backend/` to start only the API. To use the learner frontend with API features, keep the backend running in a separate terminal.
 
-Running `npm run dev` from either the project root or the `frontend/` folder starts the backend API needed by the learner UI. The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and Join forms are visual demos until an authentication service is added.
+The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and Join forms are visual demos until an authentication service is added.
 
 The learner frontend uses Tailwind CSS 4 through the Vite plugin. Shared utility styling (including the public navbar) uses Tailwind classes; existing dashboard and landing-page visual treatments remain in their stylesheets while those views are migrated.
 
