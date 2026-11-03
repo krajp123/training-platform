@@ -1,10 +1,43 @@
 import React from 'react';
-import DashboardPage from '../pages/DashboardPage.jsx';
-import HomePage from '../pages/HomePage.jsx';
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import HomePage from '../features/landing/pages/HomePage.jsx';
+import DashboardPage from '../features/learner/pages/DashboardPage.jsx';
+
+function PlaceholderPage({ title, notFound = false }) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#10101b] px-6 py-16 text-center text-white">
+      <section className="max-w-lg" aria-labelledby="placeholder-title">
+        <p className="text-sm font-bold uppercase tracking-[.18em] text-[#b9a6ff]">SCS Academy</p>
+        <h1 id="placeholder-title" className="mt-4 font-[Manrope] text-4xl font-bold">{title}</h1>
+        <p className="mt-4 text-[#c8c3d6]">
+          {notFound ? "We couldn't find the page you're looking for." : 'This page is coming soon.'}
+        </p>
+        <div className="mt-8 flex justify-center gap-3">
+          <Link className="rounded-lg bg-white px-5 py-3 font-semibold text-[#24232d]" to="/">Go home</Link>
+          <Link className="rounded-lg border border-white/25 px-5 py-3 font-semibold text-white" to="/dashboard">Dashboard</Link>
+        </div>
+      </section>
+    </main>
+  );
+}
 
 function App() {
-  const isDashboard = window.location.pathname.replace(/\/+$/, '') === '/dashboard';
-  return isDashboard ? <DashboardPage /> : <HomePage />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/courses" element={<PlaceholderPage title="Courses" />} />
+        <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />
+        <Route path="/learn/:courseSlug" element={<PlaceholderPage title="Course learning" />} />
+        <Route path="/login" element={<PlaceholderPage title="Sign in" />} />
+        <Route path="/privacy-policy" element={<PlaceholderPage title="Privacy policy" />} />
+        <Route path="/terms-and-conditions" element={<PlaceholderPage title="Terms & conditions" />} />
+        <Route path="/refund-policy" element={<PlaceholderPage title="Refund policy" />} />
+        <Route path="*" element={<PlaceholderPage title="Page not found" notFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

@@ -31,7 +31,7 @@ function Navbar({ onAuth }) {
   return (
     <header className="absolute inset-x-0 top-0 z-20 flex h-[72px] items-center justify-between gap-[clamp(24px,5vw,72px)] border-b border-white/[0.06] bg-[#10101b]/35 backdrop-blur-sm px-[clamp(20px,6vw,94px)] max-[720px]:h-[62px] max-[720px]:px-[18px]">
       <a className="inline-flex h-[60px] w-[140px] items-center overflow-hidden no-underline max-[720px]:h-[52px] max-[720px]:w-[120px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
-        <img className="h-full w-full object-cover object-center" src="/logo.png" alt="SCS Academy" />
+        <img className="h-full w-full object-cover object-center" src="/images/logo.png" alt="SCS Academy" />
       </a>
       <button
         className="hidden size-[35px] place-items-center rounded-[6px] border border-white/[0.10] bg-white/[0.03] text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#aa9bff] max-[720px]:grid"

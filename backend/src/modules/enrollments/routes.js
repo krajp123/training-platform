@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createEnrollment } from '../controllers/enrollmentController.js';
+import { createEnrollment } from './controller.js';
 
 const router = Router();
 

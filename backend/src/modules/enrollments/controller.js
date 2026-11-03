@@ -1,4 +1,4 @@
-import { courses, enrollments } from '../data/store.js';
+import { courses, enrollments } from '../../data/store.js';
 
 export function createEnrollment(request, response) {
   const courseId = Number(request.body?.courseId);

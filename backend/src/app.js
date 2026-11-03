@@ -1,7 +1,7 @@
 import express from 'express';
-import courseRoutes from './routes/courseRoutes.js';
-import enrollmentRoutes from './routes/enrollmentRoutes.js';
-import liveClassRoutes from './routes/liveClassRoutes.js';
+import courseRoutes from './modules/courses/routes.js';
+import enrollmentRoutes from './modules/enrollments/routes.js';
+import liveClassRoutes from './modules/live-classes/routes.js';
 
 const app = express();
 

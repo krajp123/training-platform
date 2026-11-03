@@ -1,37 +1,48 @@
 # Skillpath — Training Platform
 
-The project is a three-application npm workspace. Each app groups its code by responsibility:
+The project is a three-application npm workspace. Frontend and backend source is grouped by feature, while app entry points, shared services, and static assets have dedicated locations:
 
 ```text
+package.json
+package-lock.json
+README.md
 frontend/
   index.html
   vite.config.js
+  public/
+    images/              Landing page and brand images
+    videos/              Course previews and other video assets
   src/
-    app/                 App entry and page selection
-    pages/               Public homepage and learner dashboard
-    components/
-      courses/           Reusable course UI
-      layout/            Shared site navigation
+    app/                 Router and app composition
+    features/
+      courses/components/
+      landing/
+        components/      Navbar and footer
+        pages/           Marketing homepage
+      learner/
+        components/      Learner dashboard navigation
+        pages/           Learner dashboard
     services/            Backend API client
-    styles/              Page-specific stylesheets
-shared/styles/           Typography tokens shared by frontend and admin
     main.jsx
 backend/
+  package.json
   src/
-    app.js               Express app and middleware
-    server.js            HTTP server entry point
-    routes/              REST endpoint definitions
-    controllers/         Request handlers
-    data/                Demo seed data and in-memory store
-    utils/               Shared validation
+    app.js                Express app and middleware wiring
+    server.js             HTTP server entry point
+    modules/
+      courses/            Course routes and request handlers
+      enrollments/        Enrollment routes and request handlers
+      live-classes/       Live-class routes and request handlers
+    data/                 Demo seed data and in-memory store
+    utils/                Shared validation
 admin/
   index.html
   vite.config.js
   src/
-    app/                 Admin app entry
-    pages/               Admin dashboard
+    app/                  Admin app entry
+    features/dashboard/   Admin dashboard feature
     services/            Backend API client
-    styles/              Admin stylesheet
+    index.css
     main.jsx
 ```
 
@@ -56,7 +67,7 @@ Both Vite apps proxy `/api` requests to the backend. Start individual parts from
 
 The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and Join forms are visual demos until an authentication service is added.
 
-The learner frontend uses Tailwind CSS 4 through the Vite plugin. Shared utility styling (including the public navbar) uses Tailwind classes; existing dashboard and landing-page visual treatments remain in their stylesheets while those views are migrated.
+Both React frontends use Tailwind CSS 4 through the Vite plugin. Keep static images and videos under `frontend/public/images` and `frontend/public/videos`, and reference them from the site with root-relative URLs such as `/images/logo.png`.
 
 ## Build
 

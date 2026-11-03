@@ -4,8 +4,8 @@ import {
   ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2,
   GraduationCap, MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
 } from 'lucide-react';
-import Navbar from '../components/layout/Navbar.jsx';
-import Footer from '../components/layout/Footer.jsx';
+import Navbar from '../components/Navbar.jsx';
+import Footer from '../components/Footer.jsx';
 
 const bimPrograms = [
   { duration: '1 month', hours: '20 hours', price: '₹4,999', rating: '4.8', description: 'Build practical BIM foundations through guided exercises.' },
@@ -73,9 +73,9 @@ const benefitCardVariants = {
 };
 
 const courseGuidanceSlides = [
-  { src: '/course-guidance-1.png', alt: 'Learning advisor guiding a student through course options' },
-  { src: '/course-guidance-2.png', alt: 'Online course consultation with a learning advisor' },
-  { src: '/course-guidance-3.png', alt: 'Advisor presenting BIM course choices during a video call' },
+  { src: '/images/course-guidance-1.png', alt: 'Learning advisor guiding a student through course options' },
+  { src: '/images/course-guidance-2.png', alt: 'Online course consultation with a learning advisor' },
+  { src: '/images/course-guidance-3.png', alt: 'Advisor presenting BIM course choices during a video call' },
 ];
 
 const homeTailwindStyles = `
@@ -273,7 +273,7 @@ function HomePage() {
         <section className="landing-hero">
           <video
             className="hero-background-video"
-            src="/Hero-video.mp4"
+            src="/videos/hero.mp4"
             autoPlay
             loop
             muted
@@ -321,7 +321,7 @@ function HomePage() {
           className="landing-section learning-section"
           id="how-it-works"
           style={{
-            backgroundImage: "linear-gradient(rgba(12, 11, 20, 0.72), rgba(12, 11, 20, 0.72)), url('/learning-section-bg.jpg')",
+            backgroundImage: "linear-gradient(rgba(12, 11, 20, 0.72), rgba(12, 11, 20, 0.72)), url('/images/learning-section-bg.jpg')",
             backgroundAttachment: 'fixed',
             backgroundPosition: 'center',
             backgroundSize: 'cover',
@@ -359,7 +359,7 @@ function HomePage() {
           className="landing-section courses-landing !px-[clamp(20px,7vw,100px)] !py-[72px] max-[720px]:!px-[20px] max-[720px]:!py-[52px]"
           id="courses"
           style={{
-            backgroundImage: "linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url('/courses-section-bg.jpg')",
+            backgroundImage: "linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url('/images/courses-section-bg.jpg')",
             backgroundPosition: 'center',
             backgroundSize: 'cover',
           }}
@@ -389,7 +389,7 @@ function HomePage() {
                           courseVideoRefs.current[index] = video;
                         }}
                         className="h-full w-full object-cover"
-                        src={`/video/${index + 1}.mp4`}
+                        src={`/videos/course-${index + 1}.mp4`}
                         poster={bimProgramImage}
                         autoPlay
                         loop
@@ -495,7 +495,7 @@ function HomePage() {
             <div
               className="pointer-events-none absolute inset-[-12px] scale-[1.03] bg-cover bg-center blur-[8px]"
               style={{
-                backgroundImage: 'linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url("/course-guidance-bg.jpg")',
+                backgroundImage: 'linear-gradient(rgba(16, 16, 27, 0.72), rgba(16, 16, 27, 0.72)), url("/images/course-guidance-bg.jpg")',
               }}
               aria-hidden="true"
             />
@@ -579,7 +579,7 @@ function HomePage() {
         rel="noreferrer"
         aria-label="Chat with us on WhatsApp"
       >
-        <video className="block h-full w-full scale-[1.8] object-cover object-center" src="/Whatsapp.mp4" autoPlay loop muted playsInline aria-hidden="true" />
+        <video className="block h-full w-full scale-[1.8] object-cover object-center" src="/videos/whatsapp.mp4" autoPlay loop muted playsInline aria-hidden="true" />
       </a>
 
       <Footer />

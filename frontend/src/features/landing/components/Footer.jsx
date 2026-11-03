@@ -53,7 +53,7 @@ function Footer() {
               href="/"
               aria-label="SCS Academy home"
             >
-              <img className="h-full w-full object-cover object-center" src="/logo.png" alt="SCS Academy" />
+              <img className="h-full w-full object-cover object-center" src="/images/logo.png" alt="SCS Academy" />
             </a>
 
             <p className="mb-0 mt-4 text-left text-sm leading-[1.6] text-[#686674] max-[480px]:text-xs max-[480px]:leading-[1.5]">

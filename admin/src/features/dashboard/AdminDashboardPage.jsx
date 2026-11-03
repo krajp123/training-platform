@@ -3,7 +3,7 @@ import {
   ArrowUpRight, BookOpen, CalendarDays, Check, ChevronDown, CircleAlert,
   GraduationCap, LayoutDashboard, Pencil, Plus, RefreshCw, Search, Trash2, X,
 } from 'lucide-react';
-import { apiRequest } from '../services/api.js';
+import { apiRequest } from '../../services/api.js';
 
 const emptyCourse = {
   title: '', category: 'Design', level: 'Beginner', instructor: '',

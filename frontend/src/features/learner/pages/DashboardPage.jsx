@@ -4,9 +4,9 @@ import {
   Clock3, Compass, CreditCard, GraduationCap, LayoutDashboard, Menu, MoreHorizontal,
   Play, Search, ShieldCheck, Sparkles, Star, Video, X,
 } from 'lucide-react';
-import CourseCard from '../components/courses/CourseCard.jsx';
-import DashboardSidebar from '../components/layout/DashboardSidebar.jsx';
-import { getJson, postJson } from '../services/api.js';
+import CourseCard from '../../courses/components/CourseCard.jsx';
+import DashboardSidebar from '../components/DashboardSidebar.jsx';
+import { getJson, postJson } from '../../../services/api.js';
 
 const dashboardTailwindStyles = `
   [&]:[--font-size-caption:0.75rem] [&]:[--font-size-small:0.875rem] [&]:[--font-size-body:1rem] [&]:[--font-size-lead:1.125rem] [&]:[--font-size-title:1.375rem]

@@ -1,5 +1,5 @@
-import { courses, liveClasses, createLiveClassId } from '../data/store.js';
-import { validateLiveClass } from '../utils/validation.js';
+import { courses, liveClasses, createLiveClassId } from '../../data/store.js';
+import { validateLiveClass } from '../../utils/validation.js';
 
 function sendError(response, status, message) {
   return response.status(status).json({ error: message });

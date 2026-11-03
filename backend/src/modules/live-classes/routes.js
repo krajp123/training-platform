@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   createLiveClass, deleteLiveClass, listLiveClasses,
-} from '../controllers/liveClassController.js';
+} from './controller.js';
 
 const router = Router();
 
