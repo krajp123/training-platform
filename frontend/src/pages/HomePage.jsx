@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2,
-  GraduationCap, MessageCircle, Palette, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
+  GraduationCap, MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar.jsx';
 import Footer from '../components/layout/Footer.jsx';
@@ -224,9 +224,11 @@ const homeTailwindStyles = `
 
 function HomePage() {
   const [activeGuidanceSlide, setActiveGuidanceSlide] = useState(0);
+  const [pausedCourseVideos, setPausedCourseVideos] = useState({});
   const [authMode, setAuthMode] = useState('');
   const [notice, setNotice] = useState('');
   const partnerTrackRef = useRef(null);
+  const courseVideoRefs = useRef([]);
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -372,42 +374,87 @@ function HomePage() {
             {bimPrograms.map(({ duration, hours, price, rating, description }, index) => (
               <motion.article
                 key={duration}
-                className="overflow-hidden rounded-xl border border-[#6d5bd8]/50 bg-[#201e3d] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
+                className="overflow-hidden rounded-xl border border-[#e4e1eb] bg-white text-[#27243a] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
                 whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
                 whileHover={shouldReduceMotion ? undefined : { y: -5 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : index * 0.08 }}
               >
-                <div className="p-6 pb-0">
-                  <h3 className="m-0 font-[Manrope] text-xl font-bold text-white">BIM Professional Program</h3>
-                  <p className="mb-0 mt-2 min-h-10 text-sm leading-5 text-[#c8c3d6]">{description}</p>
-                  <span className="mt-3 inline-flex rounded-full border border-amber-300/30 bg-amber-300/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-100">Sample details</span>
-                </div>
-                <div className="program-image-wrap group/image relative mt-5 h-[150px] overflow-hidden bg-[#26243c]">
-                  <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={bimProgramImage} alt="" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />
+                <div className="program-image-wrap group/image relative h-[220px] overflow-hidden bg-[#26243c]">
+                  {index < 2 ? (
+                    <>
+                      <video
+                        ref={(video) => {
+                          courseVideoRefs.current[index] = video;
+                        }}
+                        className="h-full w-full object-cover"
+                        src={`/video/${index + 1}.mp4`}
+                        poster={bimProgramImage}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-label={`BIM Professional Program ${duration} preview`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute bottom-3 right-3 z-10 grid size-8 place-items-center rounded-full border border-white/35 bg-black/30 text-white/75 shadow-sm backdrop-blur-sm transition-colors hover:border-white/60 hover:bg-black/55 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        aria-label={`${pausedCourseVideos[index] ? 'Play' : 'Pause'} ${duration} course video`}
+                        onClick={() => {
+                          const video = courseVideoRefs.current[index];
+                          if (!video) return;
+                          if (video.paused) {
+                            void video.play();
+                            setPausedCourseVideos((paused) => ({ ...paused, [index]: false }));
+                          } else {
+                            video.pause();
+                            setPausedCourseVideos((paused) => ({ ...paused, [index]: true }));
+                          }
+                        }}
+                      >
+                        {pausedCourseVideos[index]
+                          ? <Play size={14} fill="currentColor" aria-hidden="true" />
+                          : <Pause size={14} aria-hidden="true" />}
+                      </button>
+                    </>
+                  ) : (
+                    <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={bimProgramImage} alt="" loading="lazy" />
+                  )}
+                  {index === 2 && <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />}
                 </div>
                 <div className="p-6">
-                  <div className="grid grid-cols-2 gap-3 border-y border-white/10 py-3">
-                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#f2efff]">{hours}</span></div>
-                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#f2efff]">{duration}</span></div>
+                  <h3 className="m-0 font-[Manrope] text-xl font-bold text-[#24232d]">BIM Professional Program</h3>
+                  <p className="mb-0 mt-2 min-h-10 text-sm leading-5 text-[#686674]">{description}</p>
+                  <div className="mt-3 flex items-center gap-1.5 text-sm text-[#686674]" aria-label={`Course rating ${rating} out of 5`}>
+                    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+                      {Array.from({ length: 5 }, (_, starIndex) => {
+                        const fill = Math.max(0, Math.min(1, Number(rating) - starIndex)) * 100;
+                        return (
+                          <span key={starIndex} className="relative block size-[15px]">
+                            <Star size={15} className="absolute inset-0 fill-[#e5e3eb] text-[#d3d0dc]" />
+                            <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill}%` }}>
+                              <Star size={15} className="max-w-none fill-amber-400 text-amber-500" />
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </span>
+                    <span className="font-bold text-[#24232d]">{rating}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 py-3">
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{hours}</span></div>
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{duration}</span></div>
                   </div>
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <div>
-                      <span className="block text-xs font-bold uppercase tracking-wider text-[#aaa5bd]">Sample price</span>
-                      <span className="mt-1 block text-xl font-bold text-white">{price}</span>
+                      <span className="mt-1 block text-xl font-bold text-[#24232d]">{price}</span>
                     </div>
-                    <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#39365f] px-4 text-sm font-bold text-white transition-colors hover:bg-[#494477]" href="/dashboard">
+                    <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[#d9d5e5] bg-white px-4 text-sm font-bold !text-black transition-colors hover:bg-[#f3f2f7]" href="/dashboard">
                       Enroll now <ArrowUpRight size={14} />
                     </a>
                   </div>
-                  <div className="mt-4 flex items-center gap-1.5 text-sm text-[#d0ccdb]" aria-label={`Sample course rating ${rating} out of 5`}>
-                    <Star size={15} className="fill-amber-300 text-amber-300" aria-hidden="true" />
-                    <span className="font-bold text-white">{rating}</span>
-                    <span>Sample rating</span>
-                  </div>
-                  <div className="mt-2 text-[10px] leading-4 text-[#aaa5bd]">Hours, price and rating are placeholders. Confirm actual details before publishing.</div>
                 </div>
               </motion.article>
             ))}
