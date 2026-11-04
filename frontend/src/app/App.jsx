@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import HomePage from '../features/landing/pages/HomePage.jsx';
+import CoursesPage from '../features/landing/pages/CoursesPage.jsx';
+import PrivacyPolicyPage from '../features/landing/pages/PrivacyPolicyPage.jsx';
+import TermsAndConditionsPage from '../features/landing/pages/TermsAndConditionsPage.jsx';
 import DashboardPage from '../features/learner/pages/DashboardPage.jsx';
 
 function PlaceholderPage({ title, notFound = false }) {
@@ -27,12 +30,12 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/courses" element={<PlaceholderPage title="Courses" />} />
+        <Route path="/courses" element={<CoursesPage />} />
         <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />
         <Route path="/learn/:courseSlug" element={<PlaceholderPage title="Course learning" />} />
         <Route path="/login" element={<PlaceholderPage title="Sign in" />} />
-        <Route path="/privacy-policy" element={<PlaceholderPage title="Privacy policy" />} />
-        <Route path="/terms-and-conditions" element={<PlaceholderPage title="Terms & conditions" />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
         <Route path="/refund-policy" element={<PlaceholderPage title="Refund policy" />} />
         <Route path="*" element={<PlaceholderPage title="Page not found" notFound />} />
       </Routes>

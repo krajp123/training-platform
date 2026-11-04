@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2,
-  GraduationCap, MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
+  MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, X, Zap,
 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer.jsx';
@@ -139,7 +139,7 @@ const homeTailwindStyles = `
   [&_.learning-section_.landing-kicker]:[color:#d5d0e0] [&_.learning-section_.section-intro_h2_span]:[color:#b9a6ff] [&_.learning-section_.section-intro_>_p]:[color:#d2ceda]
   [&_.courses-landing]:[color:#f8f6ff] [&_.courses-landing]:[background:#10101b] [&_.courses-intro]:[align-items:flex-end] [&_.courses-intro_h2_span]:[color:#b6a3ff] [&_.all-courses-link]:[display:inline-flex]
   [&_.all-courses-link]:[align-items:center] [&_.all-courses-link]:[gap:8px] [&_.all-courses-link]:[margin-bottom:5px] [&_.all-courses-link]:![color:#bfb0ff] [&_.all-courses-link]:[font-size:var(--font-size-small)]
-  [&_.all-courses-link]:[font-weight:700] [&_.catalog-note]:[margin:-13px_0_16px] [&_.catalog-note]:[color:#a8a4b3] [&_.catalog-note]:[font-size:var(--font-size-caption)] [&_.featured-courses]:[display:grid]
+  [&_.all-courses-link]:[font-weight:700] [&_.all-courses-link]:![color:white] [&_.catalog-note]:[margin:-13px_0_16px] [&_.catalog-note]:[color:#a8a4b3] [&_.catalog-note]:[font-size:var(--font-size-caption)] [&_.featured-courses]:[display:grid]
   [&_.featured-courses]:[grid-template-columns:repeat(3,_minmax(0,_1fr))] [&_.featured-courses]:[gap:14px] [&_.featured-course]:[min-width:0] [&_.featured-course]:[overflow:hidden] [&_.featured-course]:[border:1px_solid_#ffffff19]
   [&_.featured-course]:[border-radius:9px] [&_.featured-course]:[background:#191824] [&_.featured-course]:[transition:transform_.2s,_border-color_.2s] [&_.featured-course:hover]:[transform:translateY(-4px)] [&_.featured-course:hover]:[border-color:#b7a5ff73]
   [&_.featured-course-link]:[display:block] [&_.featured-image]:[height:177px] [&_.featured-image]:[position:relative] [&_.featured-image]:[overflow:hidden] [&_.featured-image]:[background:#28253a]
@@ -183,22 +183,12 @@ const homeTailwindStyles = `
   [&_.marketing-toast_>_svg]:[flex:0_0_auto] [&_.marketing-toast_>_svg]:[color:#69d6af] [&_.marketing-toast_button]:[display:grid] [&_.marketing-toast_button]:[place-items:center] [&_.marketing-toast_button]:[margin-left:4px]
   [&_.marketing-toast_button]:[border:0] [&_.marketing-toast_button]:[background:transparent] [&_.marketing-toast_button]:[color:#aaa6b5] [&_.auth-backdrop]:[position:fixed] [&_.auth-backdrop]:[z-index:40]
   [&_.auth-backdrop]:[inset:0] [&_.auth-backdrop]:[display:grid] [&_.auth-backdrop]:[place-items:center] [&_.auth-backdrop]:[padding:15px] [&_.auth-backdrop]:[background:#080710b9]
-  [&_.auth-backdrop]:[backdrop-filter:blur(5px)] [&_.auth-modal]:[width:min(100%,_390px)] [&_.auth-modal]:[position:relative] [&_.auth-modal]:[padding:25px] [&_.auth-modal]:[border:1px_solid_#ffffff20]
-  [&_.auth-modal]:[border-radius:11px] [&_.auth-modal]:[background:#1c1a2a] [&_.auth-modal]:[box-shadow:0_25px_90px_#0008] [&_.auth-close]:[position:absolute] [&_.auth-close]:[top:12px]
+  [&_.auth-backdrop]:[backdrop-filter:blur(5px)]
+  [&_.auth-close]:[position:absolute] [&_.auth-close]:[top:12px]
   [&_.auth-close]:[right:12px] [&_.auth-close]:[width:28px] [&_.auth-close]:[height:28px] [&_.auth-close]:[display:grid] [&_.auth-close]:[place-items:center]
-  [&_.auth-close]:[border:1px_solid_#ffffff1c] [&_.auth-close]:[border-radius:6px] [&_.auth-close]:[background:transparent] [&_.auth-close]:[color:#b7b3c1] [&_.auth-symbol]:[width:38px]
-  [&_.auth-symbol]:[height:38px] [&_.auth-symbol]:[display:grid] [&_.auth-symbol]:[place-items:center] [&_.auth-symbol]:[margin-bottom:16px] [&_.auth-symbol]:[border-radius:9px]
-  [&_.auth-symbol]:[background:#c5b5ff] [&_.auth-symbol]:[color:#2a2142] [&_.auth-modal_.landing-kicker]:[color:#aaa5b7] [&_.auth-modal_.landing-kicker]:[font-size:7px] [&_.auth-modal_h2]:[margin:8px_0_5px]
-  [&_.auth-modal_h2]:[color:#f7f4ff] [&_.auth-modal_h2]:[font:700_20px_Manrope,_sans-serif] [&_.auth-modal_h2]:[letter-spacing:-.6px] [&_.auth-modal_>_p]:[margin:0] [&_.auth-modal_>_p]:[color:#aaa6b4]
-  [&_.auth-modal_>_p]:[font-size:var(--font-size-small)] [&_.auth-modal_form]:[display:grid] [&_.auth-modal_form]:[gap:12px] [&_.auth-modal_form]:[margin-top:19px] [&_.auth-modal_form_label]:[display:grid]
-  [&_.auth-modal_form_label]:[gap:6px] [&_.auth-modal_form_label]:[color:#c9c6d1] [&_.auth-modal_form_label]:[font-size:var(--font-size-small)] [&_.auth-modal_form_label]:[font-weight:600] [&_.auth-modal_form_input]:[height:37px]
-  [&_.auth-modal_form_input]:[padding:0_10px] [&_.auth-modal_form_input]:[border:1px_solid_#ffffff22] [&_.auth-modal_form_input]:[border-radius:5px] [&_.auth-modal_form_input]:[outline:0] [&_.auth-modal_form_input]:[background:#12111b]
-  [&_.auth-modal_form_input]:[color:#fff] [&_.auth-modal_form_input]:[font-size:var(--font-size-small)] [&_.auth-modal_form_input:focus]:[border-color:#a994ff] [&_.auth-modal_form_input::placeholder]:[color:#777482] [&_.auth-submit]:[height:38px]
-  [&_.auth-submit]:[display:flex] [&_.auth-submit]:[align-items:center] [&_.auth-submit]:[justify-content:center] [&_.auth-submit]:[gap:8px] [&_.auth-submit]:[margin-top:3px]
-  [&_.auth-submit]:[border:0] [&_.auth-submit]:[border-radius:5px] [&_.auth-submit]:[background:#c6b7ff] [&_.auth-submit]:[color:#251e3c] [&_.auth-submit]:[font-size:10px]
-  [&_.auth-submit]:[font-weight:700] [&_.auth-demo-note]:[margin-top:12px] [&_.auth-demo-note]:[color:#9691a2] [&_.auth-demo-note]:[text-align:center] [&_.auth-demo-note]:[font-size:var(--font-size-caption)]
-  [&_.auth-switch]:[display:block] [&_.auth-switch]:[margin:13px_auto_0] [&_.auth-switch]:[padding:0] [&_.auth-switch]:[border:0] [&_.auth-switch]:[background:transparent]
-  [&_.auth-switch]:[color:#c7b8ff] [&_.auth-switch]:[font-size:var(--font-size-caption)] [@media((max-width:1000px))]:[&_.landing-hero]:[padding-right:6vw] [@media((max-width:1000px))]:[&_.landing-hero]:[padding-left:6vw] [@media((max-width:1000px))]:[&_.hero-scroll]:[left:6vw]
+  [&_.auth-close]:[border:1px_solid_#ffffff1c] [&_.auth-close]:[border-radius:6px] [&_.auth-close]:[background:transparent] [&_.auth-close]:[color:#b7b3c1]
+
+  [@media((max-width:1000px))]:[&_.landing-hero]:[padding-right:6vw] [@media((max-width:1000px))]:[&_.landing-hero]:[padding-left:6vw] [@media((max-width:1000px))]:[&_.hero-scroll]:[left:6vw]
   [@media((max-width:1000px))]:[&_.landing-hero]:[height:calc(100svh_-_90px)] [@media((max-width:1000px))]:[&_.hero-index]:[right:6vw] [@media((max-width:1000px))]:[&_.trust-strip]:[padding-right:6vw] [@media((max-width:1000px))]:[&_.trust-strip]:[padding-left:6vw] [@media((max-width:1000px))]:[&_.landing-section]:[padding-right:6vw] [@media((max-width:1000px))]:[&_.landing-section]:[padding-left:6vw]
   [@media((max-width:1000px))]:[&_.story-section]:[padding-right:6vw] [@media((max-width:1000px))]:[&_.story-section]:[padding-left:6vw] [@media((max-width:1000px))]:[&_.featured-image]:[height:150px] [@media((min-width:1001px))]:[&_.hero-content_h1]:[font-size:clamp(3.25rem,_4.1vw,_4.25rem)] [@media((min-width:1001px))]:[&_.hero-heading-break]:[display:initial]
   [@media((max-width:720px))]:[&_.landing-hero]:[height:calc(100svh_-_80px)] [@media((max-width:720px))]:[&_.landing-hero]:[grid-template-columns:1fr] [@media((max-width:720px))]:[&_.landing-hero]:[gap:15px] [@media((max-width:720px))]:[&_.landing-hero]:[padding:clamp(16px,_4vh,_36px)_23px] [@media((max-width:720px))]:[&_.hero-content]:[grid-column:1]
@@ -216,20 +206,772 @@ const homeTailwindStyles = `
   [@media((max-width:400px))]:[&_.featured-image]:[height:175px] [@media((max-width:400px))]:[&_.featured-course:last-child_.featured-image]:[height:175px] [&_.hero-content_h1]:[font-size:clamp(2rem,_4.1vw,_4.25rem)] [&_.trust-stats_>_div_>_strong]:[font-size:1.625rem]
   [&_.section-intro_h2]:[font-size:clamp(2rem,_4vw,_2.75rem)] [&_.section-intro_h2]:[line-height:1.15] [&_.story-copy_h2]:[line-height:1.15] [&_.benefit-number]:[font-size:var(--font-size-caption)] [&_.benefit-card_h3]:[font-size:var(--font-size-title)]
   [&_.course-bottom-cta_a]:[font-size:var(--font-size-small)] [&_.featured-info_h3]:[font-size:var(--font-size-title)] [&_.featured-info_h3]:[line-height:1.4] [&_.story-quote_blockquote]:[font-size:var(--font-size-small)] [&_.story-quote_blockquote]:[line-height:1.65]
-  [&_.closing-cta_h2]:[line-height:1.12] [&_.auth-modal_h2]:[font-size:var(--font-size-title)] [@media((max-width:720px))]:[&_.section-intro_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)] [@media((max-width:720px))]:[&_.story-copy_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)]
+  [&_.closing-cta_h2]:[line-height:1.12] [@media((max-width:720px))]:[&_.section-intro_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)] [@media((max-width:720px))]:[&_.story-copy_h2]:[font-size:clamp(1.875rem,_8vw,_2.5rem)]
   [@media((max-height:600px))]:[&_.landing-hero]:[height:calc(100svh_-_90px)] [@media((max-height:600px))]:[&_.landing-hero]:[padding-top:12px] [@media((max-height:600px))]:[&_.landing-hero]:[padding-bottom:12px] [@media((max-height:600px))]:[&_.hero-content]:[transform:none] [@media((max-height:600px))]:[&_.hero-content_h1]:[margin-top:8px]
   [@media((max-height:600px))]:[&_.hero-content_h1]:[margin-bottom:10px] [@media((max-height:600px))]:[&_.hero-content_h1]:[font-size:clamp(2rem,_8vh,_3rem)] [@media((max-height:600px))]:[&_.hero-description]:[font-size:1rem] [@media((max-height:600px))]:[&_.hero-description]:[line-height:1.4] [@media((max-height:600px))]:[&_.hero-actions]:[gap:10px]
   [@media((max-height:600px))]:[&_.hero-actions]:[margin-top:12px] [@media((max-height:600px))]:[&_.hero-scroll]:[bottom:8px] [@media((max-height:600px))]:[&_.hero-index]:[bottom:8px] [@media((max-height:600px)_and_(max-width:720px))]:[&_.landing-hero]:[height:calc(100svh_-_62px)]
 `;
 
+const authFlipStyles = `
+.auth-flip {
+  position: relative;
+  width: min(100%, 780px);
+  height: min(590px, calc(100vh - 32px));
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dce2ed;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px #11182738, 0 0 0 1px #ffffff80;
+  font-family: Manrope, sans-serif;
+  color: #1b2233;
+}
+.auth-flip .auth-close {
+  z-index: 5;
+  border-color: #ffffff80;
+  background: #fff;
+  color: #263248;
+}
+.auth-flip-shape {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgb(62 55 82 / 94%) 0%, rgb(31 30 47 / 94%) 100%);
+  clip-path: polygon(40% 0, 100% 0, 100% 100%, 60% 100%);
+  transition: clip-path .9s cubic-bezier(.65, 0, .25, 1), background .9s ease;
+}
+.auth-flip.is-register .auth-flip-shape {
+  clip-path: polygon(0 0, 60% 0, 40% 100%, 0 100%);
+  background: linear-gradient(225deg, rgb(62 55 82 / 94%) 0%, rgb(31 30 47 / 94%) 100%);
+}
+.auth-flip-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear .6s;
+}
+.auth-flip-panel.is-form { width: 46%; padding: 0 44px; }
+.auth-flip-panel.is-info {
+  width: 38%;
+  align-items: center;
+  padding: 0 24px;
+  text-align: center;
+}
+.auth-flip-panel.is-login-form,
+.auth-flip-panel.is-register-info { left: 0; }
+.auth-flip-panel.is-register-form { right: 0; }
+.auth-flip-panel.is-login-info { right: 2%; }
+.auth-flip-panel.is-register-info { left: 2%; }
+.auth-flip-panel .item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.auth-flip:not(.is-register) .is-login-form,
+.auth-flip:not(.is-register) .is-login-info,
+.auth-flip.is-register .is-register-form,
+.auth-flip.is-register .is-register-info {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+.auth-flip:not(.is-register) .is-login-form .item,
+.auth-flip:not(.is-register) .is-login-info .item,
+.auth-flip.is-register .is-register-form .item,
+.auth-flip.is-register .is-register-info .item {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--i, 0) * 70ms + 380ms);
+}
+.auth-flip-title {
+  margin: 0 0 22px;
+  text-align: center;
+  color: #1b2233;
+  font: 700 var(--font-size-title) Manrope, sans-serif;
+  letter-spacing: -.6px;
+}
+.auth-login-title {
+  max-width: 330px;
+  margin: 0 auto 24px;
+  font-size: clamp(20px, 2.1vw, 26px);
+  line-height: 1.3;
+}
+.auth-login-field {
+  position: relative;
+  width: 100%;
+  min-height: 54px;
+  box-sizing: border-box;
+  border: 1px solid #cfd5e2;
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.auth-login-field:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px #7c3aed1a;
+}
+.auth-login-identifier {
+  width: 100%;
+  height: 54px;
+  box-sizing: border-box;
+  padding: 17px 14px 5px;
+  border: 0;
+  border-radius: inherit;
+  outline: 0;
+  background: transparent;
+  color: #1b2233;
+  font: 600 var(--font-size-small) Manrope, sans-serif;
+}
+.auth-login-identifier::placeholder { color: transparent; }
+.auth-login-label {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: #1b2233;
+  font: 600 var(--font-size-small) Manrope, sans-serif;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transform-origin: left center;
+  transition: top .18s ease, color .18s ease, font-size .18s ease, transform .18s ease;
+}
+.auth-login-identifier:focus + .auth-login-label,
+.auth-login-identifier:not(:placeholder-shown) + .auth-login-label {
+  top: 8px;
+  color: #6d28d9;
+  font-size: 11px;
+  transform: none;
+}
+.auth-login-continue {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 0;
+  border-radius: 7px;
+}
+.auth-login-divider {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #7a8497;
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
+.auth-login-divider::before,
+.auth-login-divider::after {
+  height: 1px;
+  flex: 1;
+  background: #d9deea;
+  content: '';
+}
+.auth-login-google {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  align-self: stretch;
+  border: 1px solid #e0e3e8;
+  border-radius: 8px;
+  background: linear-gradient(#fff, #fcfcfd);
+  box-shadow: 0 3px 12px #1b223312;
+  color: #4b5058;
+  font: 500 14px Manrope, sans-serif;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.auth-login-google:hover {
+  border-color: #aab6d0;
+  background: #fff;
+  box-shadow: 0 4px 14px #1b22331c;
+}
+.auth-login-google:focus-visible {
+  outline: 2px solid #2347a8;
+  outline-offset: 3px;
+}
+.auth-login-google svg { width: 23px; height: 23px; flex: 0 0 auto; }
+.auth-flip-panel.is-login-form {
+  gap: 14px;
+}
+.auth-flip-panel.is-login-form .auth-login-title,
+.auth-flip-panel.is-login-form .auth-flip-switch {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.auth-flip-panel.is-login-form .auth-flip-switch { margin-top: 2px; }
+.auth-flip-panel.is-register-form {
+  gap: 12px;
+}
+.auth-register-title {
+  margin-bottom: 4px;
+  font-size: clamp(24px, 2.5vw, 32px);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.auth-register-field {
+  position: relative;
+  width: 100%;
+  min-height: 54px;
+  box-sizing: border-box;
+  border: 1px solid #cfd5e2;
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.auth-register-field:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px #7c3aed1a;
+}
+.auth-register-input {
+  width: 100%;
+  height: 54px;
+  box-sizing: border-box;
+  padding: 17px 14px 5px;
+  border: 0;
+  border-radius: inherit;
+  outline: 0;
+  background: transparent;
+  color: #1b2233;
+  font: 600 var(--font-size-small) Manrope, sans-serif;
+}
+.auth-register-input::placeholder { color: transparent; }
+.auth-register-label {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: #1b2233;
+  font: 600 var(--font-size-small) Manrope, sans-serif;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transform-origin: left center;
+  transition: top .18s ease, color .18s ease, font-size .18s ease, transform .18s ease;
+}
+.auth-register-input:focus + .auth-register-label,
+.auth-register-input:not(:placeholder-shown) + .auth-register-label {
+  top: 8px;
+  color: #6d28d9;
+  font-size: 11px;
+  transform: none;
+}
+.auth-flip-panel.is-register-form .auth-register-continue {
+  min-height: 46px;
+  margin: 0;
+}
+.auth-flip-panel.is-register-form .auth-login-divider { margin-top: 2px; }
+.auth-flip-panel.is-register-form .auth-login-google {
+  min-height: 42px;
+}
+.auth-register-legal {
+  margin: 0;
+  color: #657086;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+.auth-register-legal a {
+  color: #2347a8;
+  text-underline-offset: 3px;
+}
+.auth-flip-panel.is-register-form .auth-flip-switch {
+  margin: 0;
+}
+.auth-flip-hello {
+  margin: 0 0 12px;
+  color: #fff;
+  font: 800 var(--font-size-title) / 1.15 Manrope, sans-serif;
+  letter-spacing: -.4px;
+}
+.auth-flip-copy {
+  max-width: 270px;
+  margin: 0;
+  color: #e4eaf6;
+  font-size: var(--font-size-caption);
+  line-height: 1.7;
+}
+.auth-flip-illustration {
+  position: relative;
+  display: block;
+  width: 320px;
+  height: 320px;
+  max-width: none;
+  flex: 0 0 320px;
+  margin: 0 auto 8px;
+  object-fit: contain;
+}
+.auth-flip-panel.is-register-info .auth-flip-illustration {
+  left: 0;
+}
+.auth-flip-panel.is-login-info .auth-flip-illustration {
+  left: -64px;
+}
+.auth-flip-field { position: relative; margin: 0 0 24px; }
+.auth-flip-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 28px 8px 0;
+  border: 0;
+  border-bottom: 2px solid #d9deea;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: #1b2233;
+  font: inherit;
+  font-size: var(--font-size-small);
+  transition: border-color .25s ease;
+}
+.auth-flip-field label {
+  position: absolute;
+  left: 0;
+  top: 10px;
+  color: #687286;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform .25s ease, color .25s ease, font-size .25s ease;
+}
+.auth-flip-field input:focus,
+.auth-flip-field input:not(:placeholder-shown) { border-bottom-color: #2347a8; }
+.auth-flip-field input:focus + label,
+.auth-flip-field input:not(:placeholder-shown) + label {
+  transform: translateY(-20px);
+  color: #2347a8;
+  font-size: var(--font-size-caption);
+}
+.auth-flip-field svg {
+  position: absolute;
+  right: 1px;
+  top: 12px;
+  width: 15px;
+  height: 15px;
+  color: #798397;
+  transition: color .25s ease;
+}
+.auth-flip-field input:focus ~ svg { color: #2347a8; }
+.auth-flip-submit {
+  width: 100%;
+  margin-top: 2px;
+  padding: 11px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: #2347a8;
+  box-shadow: 0 6px 18px #2347a833;
+  color: #fff;
+  font: 700 var(--font-size-small) Manrope, sans-serif;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.auth-flip-submit:hover { transform: translateY(-1px); background: #193b91; box-shadow: 0 10px 24px #2347a844; }
+.auth-login-continue,
+.auth-register-continue {
+  background: #6d28d9;
+  box-shadow: 0 6px 18px #6d28d933;
+}
+.auth-login-continue:hover,
+.auth-register-continue:hover {
+  background: #5b21b6;
+  box-shadow: 0 10px 24px #6d28d944;
+}
+.auth-flip-submit:focus-visible,
+.auth-flip-switch button:focus-visible { outline: 2px solid #2347a8; outline-offset: 3px; }
+.auth-flip-switch {
+  margin: 16px 0 0;
+  text-align: center;
+  color: #657086;
+  font-size: var(--font-size-caption);
+}
+.auth-flip-switch button {
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #2347a8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auth-flip-switch button:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  .auth-flip { height: min(590px, calc(100svh - 30px)); overflow-y: auto; }
+  .auth-flip-shape { clip-path: polygon(0 0, 100% 0, 100% 22%, 0 12%); }
+  .auth-flip.is-register .auth-flip-shape { clip-path: polygon(0 0, 100% 0, 100% 12%, 0 22%); background: linear-gradient(135deg, rgb(62 55 82 / 94%) 0%, rgb(31 30 47 / 94%) 100%); }
+  .auth-flip-panel.is-info,
+  .auth-flip-panel.is-form { display: none; }
+  .auth-flip:not(.is-register) .is-login-form,
+  .auth-flip.is-register .is-register-form { position: relative; display: flex; width: 100%; padding: 76px 28px 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-flip-shape, .auth-flip-panel, .auth-flip-panel .item,
+  .auth-flip-field input, .auth-flip-field label, .auth-flip-submit { transition: none !important; }
+}
+`;
+
+const joinApplicationStyles = `
+.join-application-shell {
+  position: relative;
+  width: min(100%, 780px);
+  height: min(590px, calc(100vh - 32px));
+  overflow: hidden;
+  border: 1px solid #dce2ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 80px #11182738, 0 0 0 1px #ffffff80;
+  font-family: Manrope, sans-serif;
+}
+.join-application-shell > button {
+  z-index: 5;
+  border-color: #ffffff80;
+  background: #fff;
+  color: #263248;
+}
+.join-application-shell > div {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+.join-application-aside {
+  position: relative;
+  order: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  clip-path: polygon(0 0, 82% 0, 100% 100%, 0 100%);
+  background: linear-gradient(135deg, rgb(62 55 82 / 94%) 0%, rgb(31 30 47 / 94%) 100%);
+  padding: 18px 58px 26px 34px;
+  text-align: left;
+}
+.join-application-aside > .join-application-brand {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 148px;
+  height: 98px;
+  object-fit: cover;
+  object-position: center;
+  text-align: left;
+}
+.join-application-illustration {
+  display: block;
+  width: min(100%, 225px);
+  height: 205px;
+  margin: -2px auto 0;
+  object-fit: contain;
+}
+.join-application-aside-copy {
+  width: 250px;
+  margin-left: 0;
+  text-align: left;
+}
+.join-application-benefits {
+  width: 250px;
+  margin: 22px 0 0;
+  text-align: left;
+}
+.join-application-benefits > p {
+  justify-content: flex-start;
+}
+.join-application-form {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  order: 2;
+  justify-content: center;
+  overflow-y: auto;
+  background: #fff;
+  color: #1b2233;
+}
+.join-application-form > h1,
+.join-application-form > p,
+.join-application-form > div,
+.join-application-form > label,
+.join-application-form > button {
+  max-width: 100%;
+}
+.join-application-form input,
+.join-application-form select,
+.join-application-form textarea {
+  border-radius: 6px;
+}
+.join-application-form button[type='button'],
+.join-application-form button[type='submit'] {
+  border-radius: 7px;
+}
+@media (min-width: 768px) {
+  .join-application-shell > div {
+    grid-template-columns: 1.1fr .9fr;
+  }
+}
+@media (max-width: 767px) {
+  .join-application-shell {
+    height: auto;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+  .join-application-form {
+    min-height: 100%;
+  }
+}
+`;
+
+const applicationSteps = [
+  { eyebrow: 'Start your application', title: 'Tell us a little about yourself.' },
+  { eyebrow: 'Find your fit', title: 'Where are you in your career?' },
+  { eyebrow: 'Your experience', title: 'What does your work look like today?' },
+  { eyebrow: 'Your foundation', title: 'Tell us about your education.' },
+  { eyebrow: 'Your motivation', title: 'What would you like to achieve?' },
+  { eyebrow: 'Your goals', title: 'What are you expecting from this course?' },
+];
+
+const experienceOptions = ['Currently studying', '0-1 years', '1-2 years', '2-4 years', '4-8 years', '8-10 years', '10-12 years', '12+ years'];
+const qualificationOptions = ['Diploma', 'Associate Degree', "Bachelor's Degree", "Master's Degree", 'Ph.D', 'Others'];
+const specializationOptions = ['Architecture', 'Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering'];
+const expectationOptions = ['Upskilling', 'Getting a new job role', 'Growth in current job', 'Setup/improve my freelancing', 'Setup/improve my business', 'Preparing for higher education', 'Others'];
+
+function ChoiceList({ label, options, value, onChange }) {
+  return (
+    <fieldset className="mt-5">
+      <legend className="text-sm font-bold text-[#6048b7]">{label}<span className="text-[#e85b68]">*</span></legend>
+      <div className="mt-2 grid gap-2">
+        {options.map((option) => (
+          <label key={option} className={`flex min-h-10 cursor-pointer items-center rounded-none border px-4 text-[13px] transition-colors ${value === option ? 'border-[#7c5cff] bg-[#e8e2ff] text-[#49358a]' : 'border-[#d7dbe6] bg-white text-[#24324b] hover:border-[#9b88ed]'}`}>
+            <input className="sr-only" type="radio" name={label} value={option} checked={value === option} onChange={(event) => onChange(event.target.value)} />
+            {option}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function JoinApplication({ onClose, onComplete }) {
+  const [step, setStep] = useState(0);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({
+    name: '', phone: '', email: '', experience: '', specialization: '',
+    qualification: '', college: '', company: '', role: '', sop: '', expectation: '',
+    linkedin: '', cv: null, consent: false,
+  });
+  const [error, setError] = useState('');
+
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const next = () => {
+    setError('');
+    if (step === 0 && (!form.name.trim() || !form.phone.trim() || !form.email.trim() || !form.specialization || !form.consent)) {
+      setError('Please complete all required fields to continue.');
+      return;
+    }
+    if (step === 1 && !form.experience) return setError('Please select your work experience.');
+    if (step === 2 && form.experience !== 'Currently studying' && (!form.company.trim() || !form.role.trim())) return setError('Please add your company and job role.');
+    if (step === 3 && form.experience !== 'Currently studying' && (!form.qualification || !form.college.trim())) return setError('Please add your qualification and college.');
+    if (step === 2 && form.experience === 'Currently studying' && (!form.qualification || !form.college.trim())) return setError('Please add your qualification and college.');
+    if (step === 4 && form.sop.trim().length < 50) return setError('Please write at least 50 characters about your goals.');
+    if (step === 5 && !form.expectation) return setError('Please select one expectation.');
+    if (step === 5) {
+      setShowAdditionalDetails(true);
+      return;
+    }
+    setStep((current) => current + (current === 2 && form.experience === 'Currently studying' ? 2 : 1));
+  };
+  const submit = (event) => {
+    event.preventDefault();
+    setSubmitted(true);
+    onComplete('Your application has been received. Our counsellor will contact you within 24 working hours.');
+  };
+
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-[60] grid min-h-full place-items-center overflow-y-auto bg-[#10101b33] p-4 backdrop-blur-md">
+        <section className="relative w-full max-w-[460px] rounded-none bg-[#f7f5ff] p-6 text-center shadow-[0_24px_90px_#0008] sm:p-8" role="dialog" aria-modal="true" aria-labelledby="application-success">
+          <button className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border border-[#d9d4eb] text-[#555263]" onClick={onClose} aria-label="Close application"><X size={17} /></button>
+          <div className="mx-auto grid size-16 place-items-center rounded-full bg-[#d9fff4] text-[#188c75]"><Check size={30} /></div>
+          <h2 id="application-success" className="mt-6 font-[Manrope] text-2xl font-bold text-[#24232d]">We received your details!</h2>
+          <p className="mt-3 text-sm leading-6 text-[#686674]">Our academic counsellor will reach out to you within <strong className="text-[#6048b7]">24 working hours</strong>.</p>
+          <a className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-none bg-[#6048b7] px-6 text-sm font-bold text-white transition-colors hover:bg-[#49358a]" href="https://wa.me/?text=Hi%2C%20I%20have%20just%20submitted%20my%20SCS%20Academy%20application." target="_blank" rel="noreferrer">Message us on WhatsApp <ArrowRight size={16} /></a>
+          <button className="mt-5 block w-full text-sm font-semibold text-[#6048b7]" onClick={onClose}>Close</button>
+        </section>
+      </div>
+    );
+  }
+
+  if (showAdditionalDetails) {
+    return (
+      <div className="fixed inset-0 z-[60] grid min-h-full place-items-center overflow-y-auto bg-[#10101b33] p-4 backdrop-blur-md sm:p-8">
+        <section className="relative mx-auto w-full max-w-[460px] overflow-hidden rounded-none bg-[#f7f5ff] p-5 shadow-[0_24px_90px_#0008] sm:p-7" role="dialog" aria-modal="true" aria-labelledby="additional-details-title">
+          <div className="h-1.5 absolute inset-x-0 top-0 bg-[#6048b7]" />
+          <button className="absolute right-4 top-5 grid size-9 place-items-center rounded-full border border-[#d9d4eb] bg-white/80 text-[#555263]" onClick={onClose} aria-label="Close application"><X size={17} /></button>
+          <div className="mt-4 rounded-none bg-white px-5 py-5 text-center shadow-[0_8px_24px_#6048b714]">
+            <div className="mx-auto mb-3 flex h-9 max-w-[190px] items-center justify-center gap-2 text-[#6048b7]" aria-hidden="true">
+              <span className="h-2 w-2 rotate-45 bg-[#7ae8d5]" /><span className="h-3 w-1 bg-[#ffb39c]" /><span className="h-2 w-2 rotate-45 bg-[#6048b7]" /><span className="h-3 w-1 rotate-45 bg-[#f2c94c]" /><span className="h-2 w-2 rotate-45 bg-[#7ae8d5]" />
+            </div>
+            <h2 className="m-0 font-[Manrope] text-lg font-bold text-[#4c5872]">We have received your details!</h2>
+            <p className="mb-0 mt-2 text-sm leading-6 text-[#68748b]">Our academic counsellor will reach out to you within next <strong className="text-[#6048b7]">24 hours</strong> between <strong className="text-[#6048b7]">10AM - 10PM IST</strong>.</p>
+          </div>
+          <div className="mt-8 text-center">
+            <p className="mb-1 text-sm font-semibold text-[#6048b7]">Increase your chances of selection</p>
+            <h2 id="additional-details-title" className="m-0 font-[Manrope] text-xl font-bold leading-tight text-[#24232d]">by providing a few additional details</h2>
+          </div>
+          <div className="mt-6 grid gap-5">
+            <label className="text-sm font-bold text-[#6048b7]">Your LinkedIn profile<span className="mt-2 block"><input className="h-12 w-full rounded-none border border-[#d7dbe6] bg-white px-4 text-sm font-normal text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" type="url" value={form.linkedin} onChange={(event) => update('linkedin', event.target.value)} placeholder="Your LinkedIn profile" /></span></label>
+            <label className="text-sm font-bold text-[#6048b7]">Your updated CV<span className="mt-2 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-none border border-dashed border-[#9b88ed] bg-white px-4 text-sm font-semibold text-[#6048b7]"><ArrowUpRight size={16} />Upload<input className="sr-only" type="file" accept=".pdf,.doc,.docx" onChange={(event) => update('cv', event.target.files?.[0] || null)} /></span><span className="mt-1 block text-xs font-normal text-[#686674]">{form.cv ? form.cv.name : 'DOC, DOCX, PDF (Max 2 MB)'}</span></label>
+          </div>
+          <button className="mt-7 min-h-12 w-full rounded-none bg-[#151420] text-sm font-bold text-white transition-colors hover:bg-[#6048b7]" type="button" onClick={submit}>Submit <ArrowRight className="ml-2 inline" size={16} /></button>
+          <button className="mx-auto mt-5 block text-sm font-semibold text-[#6048b7]" type="button" onClick={onClose}>Not now</button>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] grid min-h-full place-items-center overflow-y-auto bg-[#10101b33] p-4 backdrop-blur-md sm:p-8">
+      <style>{joinApplicationStyles}</style>
+      <section className="join-application-shell relative mx-auto" role="dialog" aria-modal="true" aria-labelledby="join-application-title">
+        <button className="absolute right-4 top-5 z-10 grid size-9 place-items-center rounded-full border border-[#d9d4eb] bg-white/80 text-[#555263]" onClick={onClose} aria-label="Close application"><X size={17} /></button>
+        <div className="grid md:grid-cols-[.8fr_1.2fr]">
+          <aside className="join-application-aside hidden text-white md:flex">
+            <img className="join-application-brand" src="/images/logo.png" alt="SCS Academy" />
+            <img className="join-application-illustration" src="/videos/Login.svg" alt="" aria-hidden="true" />
+            <div className="join-application-aside-copy">
+              <h2 className="m-0 font-[Manrope] text-[22px] font-bold leading-tight">Build skills that move your career forward.</h2>
+              <p className="mt-3 text-xs leading-5 text-[#bdb8cd]">A short application helps us understand your goals and recommend the right learning path.</p>
+            </div>
+            <div className="join-application-benefits space-y-3 text-[13px] text-[#cbc6d7]">
+              {['Expert-led live training', 'Real AEC projects', 'Personalised career guidance'].map((item) => <p className="flex items-center gap-3" key={item}><span className="grid size-5 place-items-center rounded-full bg-[#6048b7] text-xs text-white">✓</span>{item}</p>)}
+            </div>
+          </aside>
+          <form className="join-application-form p-6 sm:p-9" onSubmit={submit}>
+            {step < 6 ? (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#6048b7]">{step === 2 && form.experience === 'Currently studying' ? 'Your foundation' : applicationSteps[step].eyebrow}</p>
+                <h1 id="join-application-title" className="mt-2 max-w-[430px] font-[Manrope] text-[26px] font-bold leading-tight text-[#1b2233]">{step === 2 && form.experience === 'Currently studying' ? 'Tell us about your education.' : applicationSteps[step].title}</h1>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[.16em] text-[#6048b7]">Almost there</p>
+                <h1 id="join-application-title" className="mt-2 font-[Manrope] text-2xl font-bold leading-tight text-[#24232d]">Increase your chances of selection.</h1>
+                <p className="mt-2 text-sm text-[#686674]">You can optionally share a LinkedIn profile or CV with our counsellor.</p>
+              </>
+            )}
+
+            {step === 0 && <div className="mt-5 grid gap-3">
+              <input className="h-10 rounded-none border border-[#d7dbe6] bg-white px-3 text-[13px] text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" placeholder="Full name*" value={form.name} onChange={(event) => update('name', event.target.value)} />
+              <input className="h-10 rounded-none border border-[#d7dbe6] bg-white px-3 text-[13px] text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" placeholder="Phone number*" type="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} />
+              <input className="h-10 rounded-none border border-[#d7dbe6] bg-white px-3 text-[13px] text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" placeholder="Email address*" type="email" value={form.email} onChange={(event) => update('email', event.target.value)} />
+              <select className="h-10 rounded-none border border-[#d7dbe6] bg-white px-3 text-[13px] text-[#24324b] outline-none focus:border-[#6048b7]" value={form.specialization} onChange={(event) => update('specialization', event.target.value)}><option value="">Specialisation*</option>{specializationOptions.map((option) => <option key={option}>{option}</option>)}</select>
+              <label className="flex items-start gap-2 text-xs leading-5 text-[#686674]"><input className="mt-1 accent-[#6048b7]" type="checkbox" checked={form.consent} onChange={(event) => update('consent', event.target.checked)} />I agree to be contacted by SCS Academy about suitable programs.</label>
+            </div>}
+            {step === 1 && <ChoiceList label="Your work experience" options={experienceOptions} value={form.experience} onChange={(value) => update('experience', value)} />}
+            {step === 2 && form.experience !== 'Currently studying' && <div className="mt-7 grid gap-5"><label className="text-sm font-bold text-[#6048b7]">Current or recent company name*<input className="mt-2 h-12 w-full rounded-none border border-[#d7dbe6] bg-white px-4 text-sm font-normal text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" value={form.company} onChange={(event) => update('company', event.target.value)} placeholder="Company name" /></label><label className="text-sm font-bold text-[#6048b7]">Current or recent job role*<input className="mt-2 h-12 w-full rounded-none border border-[#d7dbe6] bg-white px-4 text-sm font-normal text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" value={form.role} onChange={(event) => update('role', event.target.value)} placeholder="Job role" /></label></div>}
+            {((step === 2 && form.experience === 'Currently studying') || step === 3) && <div className="mt-5 grid gap-5"><ChoiceList label="Your highest qualification" options={qualificationOptions} value={form.qualification} onChange={(value) => update('qualification', value)} /><input className="h-12 rounded-none border border-[#aab4ca] bg-white px-4 text-sm text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" placeholder="Your college name*" value={form.college} onChange={(event) => update('college', event.target.value)} /></div>}
+            {step === 4 && <label className="mt-7 block text-sm font-bold leading-6 text-[#6048b7]">Why do you want to take this course and how will it impact your career?*<textarea className="mt-3 min-h-40 w-full resize-y rounded-none border border-[#d7dbe6] bg-white p-4 text-sm font-normal leading-6 text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" maxLength={500} value={form.sop} onChange={(event) => update('sop', event.target.value)} placeholder="Write your statement of purpose (minimum 50 characters)" /><span className="mt-1 block text-right text-xs font-normal text-[#8b8796]">{form.sop.length}/500</span></label>}
+            {step === 5 && <ChoiceList label="Your expectations from this course" options={expectationOptions} value={form.expectation} onChange={(value) => update('expectation', value)} />}
+            {step === 6 && (
+              <>
+                <div className="mt-7 rounded-none bg-white px-5 py-5 text-center shadow-[0_8px_24px_#6048b714]">
+                  <div className="mx-auto mb-3 flex h-9 max-w-[190px] items-center justify-center gap-2 overflow-hidden text-[#6048b7]" aria-hidden="true">
+                    <span className="h-2 w-2 rotate-45 bg-[#7ae8d5]" />
+                    <span className="h-3 w-1 bg-[#ffb39c]" />
+                    <span className="h-2 w-2 rotate-45 bg-[#6048b7]" />
+                    <span className="h-3 w-1 rotate-45 bg-[#f2c94c]" />
+                    <span className="h-2 w-2 rotate-45 bg-[#7ae8d5]" />
+                  </div>
+                  <h2 className="m-0 font-[Manrope] text-lg font-bold text-[#4c5872]">We have received your details!</h2>
+                  <p className="mb-0 mt-2 text-sm leading-6 text-[#68748b]">
+                    Our academic counsellor will reach out to you within next <strong className="text-[#6048b7]">24 hours</strong> between <strong className="text-[#6048b7]">10AM - 10PM IST</strong>.
+                  </p>
+                </div>
+                <div className="mt-8 text-center">
+                  <p className="mb-1 text-sm font-semibold text-[#6048b7]">Increase your chances of selection</p>
+                  <h2 className="m-0 font-[Manrope] text-xl font-bold leading-tight text-[#24232d]">by providing a few additional details</h2>
+                </div>
+                <div className="mt-6 grid gap-5">
+                  <label className="text-sm font-bold text-[#6048b7]">
+                    Your LinkedIn profile
+                    <span className="mt-2 block">
+                      <input className="h-12 w-full rounded-lg border border-[#d7dbe6] bg-white px-4 text-sm font-normal text-[#24324b] outline-none placeholder:text-[#8994a4] focus:border-[#6048b7]" type="url" value={form.linkedin} onChange={(event) => update('linkedin', event.target.value)} placeholder="Your LinkedIn profile" />
+                    </span>
+                  </label>
+                  <label className="text-sm font-bold text-[#6048b7]">
+                    Your updated CV
+                    <span className="mt-2 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[#9b88ed] bg-white px-4 text-sm font-semibold text-[#6048b7]">
+                      <ArrowUpRight size={16} />
+                      Upload
+                      <input className="sr-only" type="file" accept=".pdf,.doc,.docx" onChange={(event) => update('cv', event.target.files?.[0] || null)} />
+                    </span>
+                    <span className="mt-1 block text-xs font-normal text-[#686674]">{form.cv ? form.cv.name : 'DOC, DOCX, PDF (Max 2 MB)'}</span>
+                  </label>
+                </div>
+              </>
+            )}
+
+            {error && <p className="mt-4 text-sm font-semibold text-[#d84d5a]" role="alert">{error}</p>}
+            <div className="mt-5 flex items-center gap-2">
+              {step > 0 && <button className="min-h-10 flex-1 rounded-none border border-[#cfd4e0] text-[13px] font-bold text-[#4c5060] transition-colors hover:bg-white" type="button" onClick={() => { setError(''); setStep((current) => current - 1); }}>Back</button>}
+              <button className="min-h-10 flex-1 rounded-none bg-[#151420] text-[13px] font-bold text-white transition-colors hover:bg-[#6048b7]" type={step === 6 ? 'submit' : 'button'} onClick={step === 6 ? undefined : next}>{step === 6 ? 'Submit application' : 'Next'} <ArrowRight className="ml-2 inline" size={15} /></button>
+            </div>
+            {step === 6 && <button className="mx-auto mt-5 block text-sm font-semibold text-[#6048b7]" type="button" onClick={onClose}>Not now</button>}
+            <p className="mt-3 text-center text-[11px] text-[#8b8796]">Step {step + 1} of 7</p>
+          </form>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 48 48" role="img" aria-label="Google">
+      <path fill="#4285F4" d="M43.6 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11a9.4 9.4 0 0 1-4.1 6.2v5.2h6.7c3.9-3.6 6-8.9 6-15.4Z" />
+      <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.7-5.2c-1.8 1.2-4 2-6.8 2-5.2 0-9.6-3.5-11.2-8.2H5.9v5.4A20 20 0 0 0 24 44Z" />
+      <path fill="#FBBC05" d="M12.8 27.7a12 12 0 0 1 0-7.4v-5.4H5.9a20 20 0 0 0 0 18.2l6.9-5.4Z" />
+      <path fill="#EA4335" d="M24 12.1c3 0 5.7 1 7.8 3.1l5.9-5.9A19.7 19.7 0 0 0 24 4 20 20 0 0 0 5.9 14.9l6.9 5.4c1.6-4.7 6-8.2 11.2-8.2Z" />
+    </svg>
+  );
+}
+
 function HomePage() {
   const [activeGuidanceSlide, setActiveGuidanceSlide] = useState(0);
   const [pausedCourseVideos, setPausedCourseVideos] = useState({});
   const [authMode, setAuthMode] = useState('');
+  const [applicationOpen, setApplicationOpen] = useState(() => (
+    new URLSearchParams(window.location.search).get('join') === '1'
+  ));
   const [notice, setNotice] = useState('');
   const partnerTrackRef = useRef(null);
   const courseVideoRefs = useRef([]);
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    let timer;
+    const scrollToHash = () => {
+      const targetId = window.location.hash.slice(1);
+      if (!targetId) return;
+
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        window.scrollTo({
+          top: target.getBoundingClientRect().top + window.scrollY,
+          behavior: 'instant',
+        });
+      }, 100);
+    };
+
+    scrollToHash();
+    window.addEventListener('hashchange', scrollToHash);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('hashchange', scrollToHash);
+    };
+  }, []);
 
   useEffect(() => {
     if (shouldReduceMotion) return undefined;
@@ -265,9 +1007,21 @@ function HomePage() {
     setNotice('Login and account creation will be connected when authentication is added.');
   };
 
+  const handleGoogleLogin = () => {
+    setNotice('Google sign-in will be available when authentication is connected.');
+  };
+
   return (
     <div className={`marketing-page ${homeTailwindStyles}`}>
-      <Navbar onAuth={setAuthMode} />
+      <Navbar onAuth={(mode) => {
+        if (mode === 'join') {
+          setAuthMode('');
+          setApplicationOpen(true);
+          return;
+        }
+        setApplicationOpen(false);
+        setAuthMode(mode);
+      }} />
 
       <main>
         <section className="landing-hero">
@@ -370,17 +1124,27 @@ function HomePage() {
             <p className="mx-auto mb-0 mt-3 max-w-[560px] text-base leading-[1.7] text-[#aaa6b8]">Build in-demand skills through practical programs designed for the architecture, engineering, and construction industry.</p>
           </div>
 
+          <div className="mx-auto mb-3 grid w-full max-w-[1180px] grid-cols-3 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1">
+            <a
+              className="all-courses-link col-start-3 justify-self-end text-sm font-bold !text-white transition-colors hover:!text-white max-[640px]:col-start-1 max-[640px]:justify-self-start"
+              href="/courses"
+            >
+              View all <ArrowRight size={15} />
+            </a>
+          </div>
+
           <div className="mx-auto grid w-full max-w-[1180px] grid-cols-3 gap-6 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 max-[640px]:gap-5">
-            {bimPrograms.map(({ duration, hours, price, rating, description }, index) => (
-              <motion.article
-                key={duration}
-                className="overflow-hidden rounded-xl border border-[#e4e1eb] bg-white text-[#27243a] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
-                whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                whileHover={shouldReduceMotion ? undefined : { y: -5 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : index * 0.08 }}
-              >
+            {bimPrograms.map(({ duration, hours, price, rating, description }, index) => {
+              const courseCard = (
+                <motion.article
+                  key={duration}
+                  className="overflow-hidden rounded-xl border border-[#e4e1eb] bg-white text-[#27243a] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                  whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                  whileHover={shouldReduceMotion ? undefined : { y: -5 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : index * 0.08 }}
+                >
                 <div className="program-image-wrap group/image relative h-[220px] overflow-hidden bg-[#26243c]">
                   {index < 2 ? (
                     <>
@@ -456,8 +1220,11 @@ function HomePage() {
                     </a>
                   </div>
                 </div>
-              </motion.article>
-            ))}
+                </motion.article>
+              );
+
+              return courseCard;
+            })}
           </div>
 
           <div className="mx-auto mt-14 max-w-[920px]">
@@ -585,7 +1352,115 @@ function HomePage() {
       <Footer />
 
       {notice && <div className="marketing-toast"><Check size={16} />{notice}<button aria-label="Dismiss message" onClick={() => setNotice('')}><X size={15} /></button></div>}
-      {authMode && <div className="auth-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthMode(''); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="auth-close" aria-label="Close dialog" onClick={() => setAuthMode('')}><X size={17} /></button><div className="auth-symbol"><GraduationCap size={22} /></div><div className="landing-kicker"><span /> YOUR NEXT CHAPTER</div><h2 id="auth-title">{authMode === 'login' ? 'Welcome back.' : 'Make room for what’s next.'}</h2><p>{authMode === 'login' ? 'Pick up right where you left off.' : 'Create your free account and start exploring.'}</p><form onSubmit={submitAuth}><label>Email address<input type="email" placeholder="you@example.com" autoComplete="email" required /></label><label>Password<input type="password" placeholder="At least 8 characters" minLength="8" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required /></label><button className="auth-submit" type="submit">{authMode === 'login' ? 'Login' : 'Join now'} <ArrowRight size={15} /></button></form><div className="auth-demo-note">Demo form only — account authentication isn’t connected yet.</div><button className="auth-switch" onClick={() => setAuthMode(authMode === 'login' ? 'join' : 'login')}>{authMode === 'login' ? 'New to Skillpath? Join now' : 'Already learning with us? Login'}</button></section></div>}
+      {!applicationOpen && (authMode === 'login' || authMode === 'signup') && (
+        <>
+          <style>{authFlipStyles}</style>
+          <div className="auth-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthMode(''); }}>
+            <section className={`auth-flip${authMode === 'signup' ? ' is-register' : ''}`} role="dialog" aria-modal="true" aria-labelledby={authMode === 'login' ? 'auth-title-login' : 'auth-title-join'}>
+              <button className="auth-close" aria-label="Close dialog" onClick={() => setAuthMode('')}><X size={17} /></button>
+              <div className="auth-flip-shape" aria-hidden="true" />
+
+              <form className="auth-flip-panel is-form is-login-form" aria-hidden={authMode !== 'login'} onSubmit={submitAuth}>
+                <h2 id="auth-title-login" className="auth-flip-title auth-login-title item" style={{ '--i': 0 }}>Log in to continue your learning journey</h2>
+                <div className="auth-login-field item" style={{ '--i': 1 }}>
+                  <input
+                    className="auth-login-identifier"
+                    id="auth-login-identifier"
+                    name="identifier"
+                    type="text"
+                    autoComplete="username"
+                    placeholder=" "
+                    aria-label="Email or Phone Number"
+                    required
+                  />
+                  <label className="auth-login-label" htmlFor="auth-login-identifier">Email or Phone Number</label>
+                </div>
+                <button className="auth-flip-submit auth-login-continue item" style={{ '--i': 2 }} type="submit">Continue</button>
+                <p className="auth-login-divider item" style={{ '--i': 3 }}>Other log in options</p>
+                <button className="auth-login-google item" style={{ '--i': 4 }} type="button" aria-label="Continue with Google" onClick={handleGoogleLogin}>
+                  <GoogleMark />
+                  <span>Sign in with Google</span>
+                </button>
+                <p className="auth-flip-switch item" style={{ '--i': 5 }}>
+                  Don’t have an account? <button type="button" tabIndex={authMode === 'login' ? 0 : -1} onClick={() => setAuthMode('signup')}>Sign Up</button>
+                </p>
+              </form>
+
+              <div className="auth-flip-panel is-info is-login-info" aria-hidden={authMode !== 'login'}>
+                <img
+                  className="auth-flip-illustration item"
+                  src="/videos/Login.svg"
+                  alt=""
+                  aria-hidden="true"
+                  style={{ '--i': 0 }}
+                />
+                <h2 className="auth-flip-hello item" style={{ '--i': 1 }}>Welcome back</h2>
+                <p className="auth-flip-copy item" style={{ '--i': 2 }}>Continue your learning journey with expert-led BIM and computational design training.</p>
+              </div>
+
+              <form className="auth-flip-panel is-form is-register-form" aria-hidden={authMode !== 'signup'} onSubmit={submitAuth}>
+                <h2 id="auth-title-join" className="auth-flip-title auth-register-title item" style={{ '--i': 0 }}>Sign up with email</h2>
+                <div className="auth-register-field item" style={{ '--i': 1 }}>
+                  <input
+                    className="auth-register-input"
+                    id="auth-join-name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder=" "
+                    aria-label="Full name"
+                    required
+                  />
+                  <label className="auth-register-label" htmlFor="auth-join-name">Full name</label>
+                </div>
+                <div className="auth-register-field item" style={{ '--i': 2 }}>
+                  <input
+                    className="auth-register-input"
+                    id="auth-join-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder=" "
+                    aria-label="Email"
+                    required
+                  />
+                  <label className="auth-register-label" htmlFor="auth-join-email">Email</label>
+                </div>
+                <button className="auth-flip-submit auth-register-continue item" style={{ '--i': 3 }} type="submit">Continue</button>
+                <p className="auth-login-divider item" style={{ '--i': 4 }}>Other sign up options</p>
+                <button className="auth-login-google item" style={{ '--i': 5 }} type="button" aria-label="Continue with Google" onClick={handleGoogleLogin}>
+                  <GoogleMark />
+                  <span>Sign up with Google</span>
+                </button>
+                <p className="auth-flip-switch item" style={{ '--i': 6 }}>
+                  Already have an account? <button type="button" tabIndex={authMode === 'signup' ? 0 : -1} onClick={() => setAuthMode('login')}>Login</button>
+                </p>
+                <p className="auth-register-legal item" style={{ '--i': 7 }}>
+                  By signing up, you agree to our <a href="/terms-and-conditions">Terms of Use</a> and <a href="/privacy-policy">Privacy Policy</a>.
+                </p>
+              </form>
+
+              <div className="auth-flip-panel is-info is-register-info" aria-hidden={authMode !== 'signup'}>
+                <img
+                  className="auth-flip-illustration item"
+                  src="/videos/Login.svg"
+                  alt=""
+                  aria-hidden="true"
+                  style={{ '--i': 0 }}
+                />
+                <h2 className="auth-flip-hello item" style={{ '--i': 1 }}>Build your future</h2>
+                <p className="auth-flip-copy item" style={{ '--i': 2 }}>Create an account to explore practical, industry-focused learning programs.</p>
+              </div>
+            </section>
+          </div>
+        </>
+      )}
+      {applicationOpen && (
+        <JoinApplication
+          onClose={() => setApplicationOpen(false)}
+          onComplete={(message) => setNotice(message)}
+        />
+      )}
     </div>
   );
 }

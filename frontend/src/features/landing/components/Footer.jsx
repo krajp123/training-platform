@@ -2,9 +2,9 @@ import React from 'react';
 import { ArrowUp } from 'lucide-react';
 
 const exploreLinks = [
-  { label: 'BIM Professional Program', href: '#courses' },
-  { label: 'Computational Design Program', href: '#courses' },
-  { label: 'Our courses', href: '#courses' },
+  { label: 'BIM Professional Program', href: '/#courses' },
+  { label: 'Computational Design Program', href: '/#courses' },
+  { label: 'Our courses', href: '/#courses' },
 ];
 
 const aboutLinks = [

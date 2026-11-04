@@ -12,8 +12,13 @@ function Navbar({ onAuth }) {
   const closeMenu = () => setMenuOpen(false);
 
   const scrollToSection = (event, sectionId) => {
-    event.preventDefault();
     closeMenu();
+
+    event.preventDefault();
+    if (window.location.pathname !== '/') {
+      window.location.assign(`/#${sectionId}`);
+      return;
+    }
 
     const section = document.getElementById(sectionId);
     if (!section) {
@@ -48,10 +53,10 @@ function Navbar({ onAuth }) {
         aria-label="Main navigation"
       >
         <span className="text-[14px] text-[#b7b4c3] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" aria-disabled="true">Learn BIM</span>
-        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
+        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="/#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
 
-        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
-        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
+        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
+        <a className="text-[14px] text-[#b7b4c3] no-underline transition-colors hover:text-[#c8b9ff] max-[720px]:border-b max-[720px]:border-white/[0.07] max-[720px]:px-[3px] max-[720px]:py-3" href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
         <div className="ml-auto flex items-center gap-[10px] max-[720px]:ml-0 max-[720px]:mt-3 max-[720px]:justify-start">
           <button className="min-h-10 cursor-pointer rounded-[6px] border border-white/[0.16] bg-transparent px-4 font-['DM_Sans'] text-[14px] font-bold text-[#efedf7] hover:border-[#b7a5ff]" onClick={() => openAuth('login')}>Login</button>
           <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-white bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#211a37] hover:border-[#e9e9e9] hover:bg-[#e9e9e9]" onClick={() => openAuth('join')}>
