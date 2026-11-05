@@ -90,7 +90,7 @@ function TermsAndConditionsPage() {
       />
 
       <div className="relative h-[72px] bg-[#151420] max-[720px]:h-[62px]">
-        <Navbar onAuth={(mode) => window.location.assign(mode === 'join' ? '/?join=1' : '/login')} />
+        <Navbar />
       </div>
 
       <main>
@@ -223,3 +223,4 @@ function TermsAndConditionsPage() {
 }
 
 export default TermsAndConditionsPage;
+

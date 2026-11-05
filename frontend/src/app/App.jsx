@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
 import HomePage from '../features/landing/pages/HomePage.jsx';
 import CoursesPage from '../features/landing/pages/CoursesPage.jsx';
 import PrivacyPolicyPage from '../features/landing/pages/PrivacyPolicyPage.jsx';
 import TermsAndConditionsPage from '../features/landing/pages/TermsAndConditionsPage.jsx';
 import DashboardPage from '../features/learner/pages/DashboardPage.jsx';
+import BimPage from '../features/landing/pages/BimPage.jsx';
+import AuthModal from '../features/landing/components/AuthModal.jsx';
 
 function PlaceholderPage({ title, notFound = false }) {
   return (
@@ -24,16 +26,26 @@ function PlaceholderPage({ title, notFound = false }) {
   );
 }
 
+function AuthEntryPage({ mode }) {
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('scs-auth', { detail: mode }));
+  }, [mode]);
+
+  return <main className="min-h-screen bg-[#10101b]" aria-label="Authentication" />;
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <AuthModal />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/courses" element={<CoursesPage />} />
+        <Route path="/bim" element={<BimPage />} />
         <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />
         <Route path="/learn/:courseSlug" element={<PlaceholderPage title="Course learning" />} />
-        <Route path="/login" element={<PlaceholderPage title="Sign in" />} />
+        <Route path="/login" element={<AuthEntryPage mode="login" />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />
         <Route path="/refund-policy" element={<PlaceholderPage title="Refund policy" />} />

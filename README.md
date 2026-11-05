@@ -65,7 +65,24 @@ The workspace starts all three services:
 
 Both Vite apps proxy `/api` requests to the backend. Start individual parts from the project root with `npm run dev:frontend`, `npm run dev:admin`, or `npm run dev:backend`. You can also run `npm run dev` from inside `frontend/` or `admin/` to start only that app, and from inside `backend/` to start only the API. To use the learner frontend with API features, keep the backend running in a separate terminal.
 
-The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and Join forms are visual demos until an authentication service is added.
+The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and signup use OTP verification. Set the backend environment variables below before starting the API:
+
+```bash
+MONGODB_URI=mongodb+srv://...
+MONGODB_DB=skillpath
+OTP_SECRET=replace-with-a-long-random-secret
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=...
+SMTP_PASSWORD=... # Gmail App Password
+SMTP_FROM="SCS Academy <your-gmail-address@gmail.com>"
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_FROM_NUMBER=+1...
+```
+
+Email identifiers are delivered through SMTP and phone identifiers must use E.164 format (for example `+919876543210`) and are delivered through Twilio.
 
 Both React frontends use Tailwind CSS 4 through the Vite plugin. Keep static images and videos under `frontend/public/images` and `frontend/public/videos`, and reference them from the site with root-relative URLs such as `/images/logo.png`.
 
@@ -84,7 +101,9 @@ This builds both React applications. The backend is a Node.js service and does n
 - `PATCH /api/courses/:id`, `DELETE /api/courses/:id`
 - `GET /api/live-classes`, `POST /api/live-classes`, `DELETE /api/live-classes/:id`
 - `POST /api/enrollments`
+- `POST /api/auth/request-otp`
+- `POST /api/auth/verify-otp`
 
 ## Demo limitations
 
-The API currently stores catalog, class, and enrollment changes in memory; they reset when the backend restarts. Checkout is a demo and does not process payments. Before production, add persistent storage, user authentication/authorization (especially for admin routes), a payment provider, and real classroom/lesson integrations.
+The API currently stores catalog, class, and enrollment changes in memory; users, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for protected routes, session refresh/revocation, and real classroom/lesson integrations.
