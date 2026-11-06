@@ -18,6 +18,12 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/auth', authRoutes);
 
 app.use((error, _request, response, _next) => {
+  if (error.name === 'MulterError') {
+    const isAvatar = error.field === 'avatar';
+    const item = isAvatar ? 'Profile photo' : 'Resume';
+    const size = isAvatar ? '2 MB' : '5 MB';
+    return response.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? `${item} must be smaller than ${size}.` : `${item} upload was rejected.` });
+  }
   if (error instanceof SyntaxError && 'body' in error) {
     return response.status(400).json({ error: 'Request body must be valid JSON.' });
   }

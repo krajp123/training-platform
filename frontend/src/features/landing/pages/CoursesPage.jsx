@@ -105,7 +105,7 @@ function CoursesPage() {
 
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
-      <div className="h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
+      <div className="sticky top-0 z-50 h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
         <Navbar />
       </div>
       <main className="mx-auto max-w-[1180px] px-5 pb-10 sm:px-7">
@@ -154,4 +154,3 @@ function CoursesPage() {
 }
 
 export default CoursesPage;
-

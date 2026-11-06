@@ -300,7 +300,7 @@ function BimPage() {
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
       <motion.div style={{ scaleX }} className="fixed left-0 top-0 z-[60] h-[3px] w-full origin-left bg-[#7ae8d5]" />
-      <div className="h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
+      <div className="sticky top-0 z-50 h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
         <Navbar />
       </div>
       <main>

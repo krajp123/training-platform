@@ -68,6 +68,8 @@ Both Vite apps proxy `/api` requests to the backend. Start individual parts from
 The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and signup use OTP verification. Set the backend environment variables below before starting the API:
 
 ```bash
+# If Node cannot resolve Atlas SRV records on your network, use the direct
+# seed-list URI copied/generated for your cluster instead of mongodb+srv://.
 MONGODB_URI=mongodb+srv://...
 MONGODB_DB=skillpath
 OTP_SECRET=replace-with-a-long-random-secret
@@ -103,7 +105,15 @@ This builds both React applications. The backend is a Node.js service and does n
 - `POST /api/enrollments`
 - `POST /api/auth/request-otp`
 - `POST /api/auth/verify-otp`
+- `GET /api/auth/profile` (authenticated)
+- `PATCH /api/auth/profile` (authenticated; saves a profile section)
+- `GET /api/auth/profile/resume` (authenticated file download)
+- `DELETE /api/auth/profile/resume` (authenticated; removes the resume)
+- `GET /api/auth/profile/avatar` (authenticated image response)
+- `POST /api/auth/profile/avatar` (authenticated multipart upload, field `avatar`; JPEG/PNG/WebP, 2 MB max)
+- `DELETE /api/auth/profile/avatar` (authenticated; removes the profile photo)
+- `POST /api/auth/profile/resume` (authenticated multipart upload, field `resume`)
 
 ## Demo limitations
 
-The API currently stores catalog, class, and enrollment changes in memory; users, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for protected routes, session refresh/revocation, and real classroom/lesson integrations.
+The API currently stores catalog, class, and enrollment changes in memory; users, profiles, resumes, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for other protected routes, session refresh/revocation, and real classroom/lesson integrations.

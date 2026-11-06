@@ -41,14 +41,21 @@ function AuthModal() {
     setMode('');
     if (window.location.search) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
   };
-  const submit = (event) => {
-    event.preventDefault();
+
+  const requestCode = () => {
     setBusy(true);
     setError('');
     postJson('/api/auth/request-otp', { identifier, name, purpose: mode })
-      .then((result) => { setStep('otp'); setNotice(result.message); })
+      .then((result) => {
+        setStep('otp');
+        setNotice(result.message);
+      })
       .catch((requestError) => setError(requestError.message))
       .finally(() => setBusy(false));
+  };
+  const submit = (event) => {
+    event.preventDefault();
+    requestCode();
   };
   const verify = (event) => {
     event.preventDefault();
@@ -57,8 +64,10 @@ function AuthModal() {
     postJson('/api/auth/verify-otp', { identifier, name, otp, purpose: mode })
       .then((result) => {
         localStorage.setItem('scs_session_token', result.token);
+        localStorage.setItem('scs_user', JSON.stringify(result.user));
+        window.dispatchEvent(new CustomEvent('scs-auth-state', { detail: result.user }));
         close();
-        setNotice(`Welcome${result.user.name ? `, ${result.user.name}` : ''}!`);
+        setNotice('');
       })
       .catch((requestError) => setError(requestError.message))
       .finally(() => setBusy(false));

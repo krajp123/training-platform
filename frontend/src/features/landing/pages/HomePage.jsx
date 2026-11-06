@@ -81,7 +81,7 @@ const courseGuidanceSlides = [
 const homeTailwindStyles = `
   [&]:[--font-size-caption:0.75rem] [&]:[--font-size-small:0.875rem] [&]:[--font-size-body:1rem] [&]:[--font-size-lead:1.125rem] [&]:[--font-size-title:1.375rem]
   [&]:[--font-size-heading:2rem] [&]:[--font-size-display:clamp(3rem,_6vw,_4.75rem)] [&]:[--line-height-body:1.65] [&]:[--line-height-heading:1.2] [&]:[font-size:var(--font-size-body)]
-  [&]:[line-height:var(--line-height-body)] [&]:[min-height:100vh] [&]:[overflow:hidden] [&]:[color:#f9f8ff] [&]:[background:#10101b]
+  [&]:[line-height:var(--line-height-body)] [&]:[min-height:100vh] [&]:[overflow:clip] [&]:[color:#f9f8ff] [&]:[background:#10101b]
   [&]:[font-family:'DM_Sans',_sans-serif] [&_a]:[color:inherit] [&_a]:[text-decoration:none] [&_button]:[font:inherit]
   [&_.hero-primary:hover]:[background:rgba(255,255,255,.16)] [&_.hero-primary:hover]:[border-color:white] [&_.hero-primary:hover]:[transform:translateY(-2px)] [&_.hero-primary:hover]:[box-shadow:0_8px_24px_#0003] [&_.hero-secondary:hover]:![color:white] [&_.hero-secondary:hover]:[transform:translateY(-2px)] [&_.hero-secondary:hover_>_span]:[background:rgba(255,255,255,.12)] [&_.hero-secondary:hover_>_span]:[border-color:#ffffff70] [&_.closing-cta_>_button:hover]:[background:white] [&_.closing-cta_>_button:hover]:[border-color:white] [&_.landing-hero]:[position:relative]
   [&_.landing-hero]:[height:calc(100svh_-_90px)] [&_.landing-hero]:[min-height:0] [&_.landing-hero]:[display:grid] [&_.landing-hero]:[grid-template-columns:repeat(3,_minmax(0,_1fr))] [&_.landing-hero]:[align-items:center]

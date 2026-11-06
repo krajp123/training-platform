@@ -7,6 +7,7 @@ import TermsAndConditionsPage from '../features/landing/pages/TermsAndConditions
 import DashboardPage from '../features/learner/pages/DashboardPage.jsx';
 import BimPage from '../features/landing/pages/BimPage.jsx';
 import AuthModal from '../features/landing/components/AuthModal.jsx';
+import ScsProfilePage from '../features/landing/pages/ScsProfilePage.jsx';
 
 function PlaceholderPage({ title, notFound = false }) {
   return (
@@ -41,6 +42,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/profile" element={<ScsProfilePage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/bim" element={<BimPage />} />
         <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />
