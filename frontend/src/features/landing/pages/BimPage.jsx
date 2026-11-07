@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, ArrowUpRight, ChevronDown, Lightbulb } from 'lucide-react';
 import Footer from '../components/Footer.jsx';
 import Navbar from '../components/Navbar.jsx';
 
 const groups = ['Basics', 'Core concepts', 'Tools and workflow', 'Standards and management', 'Advanced and career'];
+const navbarAccent = 'linear-gradient(90deg, #7A1F2B 0%, #A52A32 22%, #D34B2F 48%, #E97832 68%, #C94C2D 84%, #7A1F2B 100%)';
 
 const topics = [
   {
@@ -221,19 +222,19 @@ function Topic({ topic, index, next }) {
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
     >
-      <p className="m-0 text-sm font-semibold text-[#0f766e]">{groups[topic.group]} &middot; Topic {index + 1}</p>
+      <p className="m-0 text-sm font-semibold text-[#7A1F2B]">{groups[topic.group]} &middot; Topic {index + 1}</p>
       <h2 className="mt-1 font-[Manrope] text-2xl font-bold tracking-[-.02em] text-[#112e49] sm:text-[1.7rem]">{topic.title}</h2>
       {topic.body.map((p, i) => <p key={i} className="mt-4 max-w-[70ch] text-[15px] leading-7 text-[#3d4f61]">{p}</p>)}
       {topic.table && <Table {...topic.table} />}
       {topic.points && (
-        <ul className="mt-4 max-w-[70ch] space-y-2 pl-5 text-[15px] leading-7 text-[#3d4f61] marker:text-[#0f766e]">
+        <ul className="mt-4 max-w-[70ch] space-y-2 pl-5 text-[15px] leading-7 text-[#3d4f61] marker:text-[#D34B2F]">
           {topic.points.map((p) => <li key={p}>{p}</li>)}
         </ul>
       )}
       {topic.links && (
         <div className="mt-5">
           <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-            className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-semibold text-[#0f766e] hover:text-[#115e59]">
+            className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-semibold text-[#7A1F2B] hover:text-[#E97832]">
             <Lightbulb size={15} /> Further reading
             <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="inline-flex"><ChevronDown size={15} /></motion.span>
           </button>
@@ -243,7 +244,7 @@ function Topic({ topic, index, next }) {
                 transition={{ duration: 0.25 }} className="m-0 mt-2 list-none space-y-1.5 overflow-hidden p-0">
                 {topic.links.map(([label, href]) => (
                   <li key={href}>
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-[#2a5d9f] underline-offset-2 hover:underline">
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-[#7A1F2B] underline-offset-2 hover:text-[#E97832] hover:underline">
                       {label} <ArrowUpRight size={13} />
                     </a>
                   </li>
@@ -254,7 +255,7 @@ function Topic({ topic, index, next }) {
         </div>
       )}
       {next && (
-        <a href={`#${next.id}`} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#112e49] no-underline hover:text-[#0f766e]">
+        <a href={`#${next.id}`} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[#7A1F2B] no-underline hover:text-[#E97832]">
           Next: {next.title} <ArrowRight size={15} />
         </a>
       )}
@@ -264,8 +265,6 @@ function Topic({ topic, index, next }) {
 
 function BimPage() {
   const [active, setActive] = useState(topics[0].id);
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -288,9 +287,9 @@ function BimPage() {
       <ul className="m-0 list-none space-y-0.5 p-0">
         {topics.filter((t) => t.group === gi).map((t) => (
           <li key={t.id} className="relative">
-            {active === t.id && <motion.span layoutId="toc-mark" className="absolute inset-y-0 left-0 w-[3px] rounded bg-[#0f766e]" />}
+            {active === t.id && <motion.span layoutId="toc-mark" className="absolute inset-y-0 left-0 w-[3px] rounded" style={{ background: navbarAccent }} />}
             <a href={`#${t.id}`} onClick={(e) => go(e, t.id)}
-              className={`block py-1.5 pl-3 text-sm no-underline ${active === t.id ? 'font-semibold text-[#0f766e]' : 'text-[#5a6b7d] hover:text-[#112e49]'}`}>{t.title}</a>
+              className={`block py-1.5 pl-3 text-sm no-underline ${active === t.id ? 'font-semibold text-[#7A1F2B]' : 'text-[#5a6b7d] hover:text-[#E97832]'}`}>{t.title}</a>
           </li>
         ))}
       </ul>
@@ -299,20 +298,17 @@ function BimPage() {
 
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
-      <motion.div style={{ scaleX }} className="fixed left-0 top-0 z-[60] h-[3px] w-full origin-left bg-[#7ae8d5]" />
-      <div className="sticky top-0 z-50 h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
-        <Navbar />
-      </div>
+      <Navbar />
       <main>
         <section className="bg-white">
           <div className={`${wrap} border-b border-[#e8eaf0] py-12 sm:py-16`}>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <p className="m-0 text-sm text-[#687789]"><a href="/" className="text-[#687789] no-underline hover:text-[#0f766e]">Home</a> / Learn BIM</p>
+              <p className="m-0 text-sm text-[#687789]"><a href="/" className="text-[#7A1F2B] no-underline hover:text-[#E97832]">Home</a> / Learn BIM</p>
               <h1 className="mt-3 font-[Manrope] text-[clamp(2rem,4vw,2.9rem)] font-bold leading-[1.12] tracking-[-.03em] text-[#112e49]">Learn Building Information Modeling, topic by topic.</h1>
               <p className="mt-4 max-w-xl text-base leading-7 text-[#4b5b6c]">Short, clear lessons on BIM concepts, software, standards and careers. Read them in order or jump straight to what you need.</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <a className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0f766e] px-5 text-sm font-bold text-white no-underline hover:bg-[#115e59]" href="#what-is-bim" onClick={(e) => go(e, 'what-is-bim')}>Start learning <ArrowRight size={16} /></a>
-                <a className="inline-flex min-h-11 items-center rounded-lg border border-[#b8deda] bg-white px-5 text-sm font-bold text-[#112e49] no-underline hover:border-[#0f766e]" href="/courses">Explore BIM courses</a>
+                <a className="inline-flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold text-white no-underline" style={{ background: navbarAccent }} href="#what-is-bim" onClick={(e) => go(e, 'what-is-bim')}>Start learning <ArrowRight size={16} /></a>
+                <a className="inline-flex min-h-11 items-center rounded-lg border border-[#A52A32] bg-white px-5 text-sm font-bold text-[#7A1F2B] no-underline transition-colors hover:border-[#E97832] hover:text-[#E97832]" href="/courses">Explore BIM courses</a>
               </div>
             </motion.div>
 
@@ -334,10 +330,10 @@ function BimPage() {
           <div className="min-w-0">
             {topics.map((t, i) => <Topic key={t.id} topic={t} index={i} next={topics[i + 1]} />)}
 
-            <motion.div className="mt-10 rounded-xl bg-[#e6f4f2] p-6 sm:p-8" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.4 }}>
+            <motion.div className="mt-10 rounded-xl border border-[#f1d8ce] bg-[#fff8f4] p-6 sm:p-8" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.4 }}>
               <h2 className="m-0 font-[Manrope] text-xl font-bold text-[#112e49]">Tools you will meet in practice</h2>
-              <div className="mt-4 flex flex-wrap gap-2">{tools.map((tool) => <span key={tool} className="rounded-full border border-[#b8deda] bg-white px-3 py-1.5 text-xs font-bold text-[#0f766e]">{tool}</span>)}</div>
-              <a href="/courses" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#0f766e] no-underline hover:underline">See guided BIM courses <ArrowRight size={15} /></a>
+              <div className="mt-4 flex flex-wrap gap-2">{tools.map((tool) => <span key={tool} className="rounded-full border border-[#e7b6a4] bg-white px-3 py-1.5 text-xs font-bold text-[#7A1F2B]">{tool}</span>)}</div>
+              <a href="/courses" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#7A1F2B] no-underline hover:text-[#E97832] hover:underline">See guided BIM courses <ArrowRight size={15} /></a>
             </motion.div>
           </div>
         </div>

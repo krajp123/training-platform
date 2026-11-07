@@ -87,9 +87,7 @@ function PrivacyPolicyPage() {
         href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
       />
 
-      <div className="sticky top-0 z-50 h-[72px] bg-[#151420] max-[720px]:h-[62px]">
-        <Navbar />
-      </div>
+      <Navbar />
 
       <main>
         {/* Intro: headline on the left, the policy's short answers on the right */}

@@ -219,6 +219,7 @@ export async function getUserProfile(userId) {
     type: user?.type || '',
     headline: '',
     jobTitle: '',
+    companyName: '',
     experienceYears: '',
     specialization: '',
     location: '',
@@ -376,7 +377,7 @@ export async function updateUserProfile(userId, section, data) {
   }
   const db = await getDatabase();
   const allowedFields = {
-    personal: ['name', 'headline', 'jobTitle', 'experienceYears', 'specialization', 'location'],
+    personal: ['name', 'headline', 'jobTitle', 'companyName', 'experienceYears', 'specialization', 'location'],
     about: ['about', 'languages'],
     skills: ['skills'],
     workExperience: ['workExperience'],

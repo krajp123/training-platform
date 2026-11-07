@@ -1,3 +1,13 @@
+function parseJsonResponse(text) {
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined;
+    throw error;
+  }
+}
+
 async function requestJson(url, options) {
   const token = localStorage.getItem('scs_session_token');
   const response = await fetch(url, {
@@ -8,10 +18,12 @@ async function requestJson(url, options) {
     },
   });
   if (response.status === 204) return null;
-  const result = await response.json();
+  const result = parseJsonResponse(await response.text());
   if (!response.ok) {
-    throw new Error(result.error || `Request failed with status ${response.status}.`);
+    throw new Error(result?.error || `Request failed with status ${response.status}.`);
   }
+  if (result === null) throw new Error(`The server returned an empty response (HTTP ${response.status}).`);
+  if (result === undefined) throw new Error(`The server returned an invalid JSON response (HTTP ${response.status}).`);
   return result;
 }
 

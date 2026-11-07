@@ -105,9 +105,7 @@ function CoursesPage() {
 
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
-      <div className="sticky top-0 z-50 h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
-        <Navbar />
-      </div>
+      <Navbar />
       <main className="mx-auto max-w-[1180px] px-5 pb-10 sm:px-7">
         <section className="border-b border-[#edf0f4] py-7 sm:py-9">
           <div className="mt-2.5 flex flex-wrap items-start justify-between gap-4">

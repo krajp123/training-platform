@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDownToLine, ArrowUpRight, BadgeCheck, BriefcaseBusiness, Check, ChevronDown, FileText,
-  GraduationCap, Hand, Heart, Languages, MapPin, Pencil, Plus, ShieldCheck,
-  Sparkles, Upload, UserRound, X,
+  ArrowDownToLine, ArrowUpRight, BadgeCheck, Check, ChevronDown, FileText,
+  Hand, MapPin, Pencil, Plus, Upload, X,
 } from 'lucide-react';
 import Footer from '../components/Footer.jsx';
 import Navbar from '../components/Navbar.jsx';
@@ -14,6 +13,7 @@ const emptyProfile = {
   type: '',
   headline: '',
   jobTitle: '',
+  companyName: '',
   experienceYears: '',
   specialization: '',
   location: '',
@@ -42,6 +42,7 @@ const sectionFields = {
     { key: 'name', label: 'Full name', required: true, placeholder: 'e.g. Alex Morgan' },
     { key: 'headline', label: 'Profile headline', placeholder: 'e.g. BIM Coordinator | Revit & Digital Construction' },
     { key: 'jobTitle', label: 'Current role', placeholder: 'e.g. BIM Coordinator' },
+    { key: 'companyName', label: 'Company name', placeholder: 'e.g. Acme Design Studio' },
     { key: 'experienceYears', label: 'Years of experience', type: 'number', min: 0, max: 80, step: 0.5, placeholder: 'e.g. 3' },
     { key: 'specialization', label: 'Specialization', placeholder: 'e.g. Structural BIM' },
     { key: 'location', label: 'Location', placeholder: 'City, country' },
@@ -87,33 +88,49 @@ function notifyAvatarChanged() {
   if (user) window.dispatchEvent(new CustomEvent('scs-auth-state', { detail: user }));
 }
 
-function SectionTitle({ icon: Icon, children, action }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#e9edf3] px-5 py-4 sm:px-6">
-      <h2 className="flex items-center gap-2.5 font-[Manrope] text-base font-bold text-[#172338]">
-        <Icon size={18} className="text-[#5945c7]" aria-hidden="true" />
-        {children}
-      </h2>
-      {action}
-    </div>
-  );
-}
+const levelRank = { Expert: 3, Intermediate: 2, Beginner: 1 };
+const levelAccent = { Beginner: '#B88600', Intermediate: '#C23E5C', Expert: '#6D28D9' };
+const navbarGradient = 'linear-gradient(90deg, #7A1F2B 0%, #A52A32 22%, #D34B2F 48%, #E97832 68%, #C94C2D 84%, #7A1F2B 100%)';
+const levelChip = {
+  Beginner: 'bg-[#B88600] text-white',
+  Intermediate: 'bg-[#C23E5C] text-white',
+  Expert: 'bg-[#6D28D9] text-white',
+};
 
-function ProfileCard({ icon: Icon, title, action, children }) {
+function Section({ id, title, action, children }) {
   return (
-    <section className="overflow-hidden border border-[#e2e7ef] bg-white shadow-[0_8px_24px_#19294708]">
-      <SectionTitle icon={Icon} action={action}>{title}</SectionTitle>
-      <div className="p-5 sm:p-6">{children}</div>
+    <section id={id} className="scroll-mt-24 border-t border-[#d3dad9] py-8 first:border-t-0 first:pt-2 sm:py-9">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="m-0 font-[Bricolage_Grotesque,sans-serif] text-[22px] font-semibold leading-tight tracking-[-0.01em] text-[#17262b]">{title}</h2>
+        {action}
+      </div>
+      <div className="mt-5 min-w-0">{children}</div>
     </section>
   );
 }
 
-function EditButton({ editing, onClick }) {
+function ProfileActionButton({ icon: Icon, children, onClick, tone = 'light' }) {
+  const tones = {
+    light: 'border-[#17262b]/20 bg-white text-[#17262b] hover:border-[#7A1F2B] hover:bg-[#7A1F2B] hover:text-white',
+    dark: 'border-white/25 bg-transparent text-white hover:border-white hover:bg-white hover:text-[#7A1F2B]',
+  };
   return (
-    <button type="button" onClick={onClick} className="inline-flex min-h-8 items-center gap-1.5 border border-[#e0e4ed] px-2.5 text-xs font-bold text-[#5945c7] transition-colors hover:border-[#5945c7] hover:bg-[#f5f3ff]">
-      {editing ? <X size={13} /> : <Pencil size={13} />}
-      {editing ? 'Cancel' : 'Edit'}
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex min-h-9 items-center gap-2 rounded-md border px-3 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f0b44c] ${tones[tone]}`}
+    >
+      <Icon size={14} aria-hidden="true" />
+      {children}
     </button>
+  );
+}
+
+function EditButton({ editing, onClick, tone }) {
+  return (
+    <ProfileActionButton icon={editing ? X : Pencil} onClick={onClick} tone={tone}>
+      {editing ? 'Cancel' : 'Edit'}
+    </ProfileActionButton>
   );
 }
 
@@ -133,12 +150,12 @@ function TagsField({ definition, value, onChange }) {
       {tags.length > 0 && (
         <ul className="m-0 flex flex-wrap gap-2 p-0" aria-label={`${definition.label} added`}>
           {tags.map((tag, index) => (
-            <li key={`${tag}-${index}`} className="inline-flex items-center gap-1.5 border border-[#e1dbff] bg-[#f5f3ff] py-1 pl-2.5 pr-1 text-xs font-semibold text-[#5140ad]">
+            <li key={`${tag}-${index}`} className="inline-flex items-center gap-1.5 rounded-md border border-[#D34B2F]/30 bg-[#f9e8e3] py-1 pl-2.5 pr-1 text-xs font-semibold text-[#7A1F2B]">
               {tag}
               <button
                 type="button"
                 onClick={() => onChange(definition.key, tags.filter((_, itemIndex) => itemIndex !== index))}
-                className="grid size-5 place-items-center text-[#7568b7] hover:bg-[#e9e4ff] hover:text-[#bd4654]"
+                className="grid size-5 place-items-center text-[#A52A32] hover:bg-[#f3d9d4] hover:text-[#7A1F2B]"
                 aria-label={`Remove ${tag}`}
               >
                 <X size={12} />
@@ -148,7 +165,7 @@ function TagsField({ definition, value, onChange }) {
         </ul>
       )}
       <input
-        className="w-full border border-[#dce2ec] bg-white px-3 py-2.5 text-sm text-[#27354b] outline-none transition placeholder:text-[#9aa4b4] focus:border-[#7664d8] focus:ring-2 focus:ring-[#7664d8]/10"
+        className="w-full rounded-md border border-[#c4cecd] bg-white px-3 py-2.5 text-sm text-[#17262b] outline-none transition placeholder:text-[#8a9899] focus:border-[#A52A32] focus:ring-2 focus:ring-[#A52A32]/10"
         value={input}
         placeholder={definition.placeholder}
         onChange={(event) => setInput(event.target.value)}
@@ -161,7 +178,7 @@ function TagsField({ definition, value, onChange }) {
         onBlur={addTag}
         aria-label={definition.label}
       />
-      <p className="m-0 text-[11px] font-normal text-[#8993a4]">Press Enter or comma to add each item.</p>
+      <p className="m-0 text-[11px] font-normal text-[#6f8083]">Press Enter or comma to add each item.</p>
     </div>
   );
 }
@@ -190,7 +207,7 @@ function MonthRangeField({ definition, value, onChange }) {
   const updateRange = (start, end, current) => {
     onChange(definition.key, start ? `${start} – ${current ? 'Present' : end}`.trim() : '');
   };
-  const inputClass = 'min-w-0 flex-1 border border-[#dce2ec] bg-white px-3 py-2.5 text-sm text-[#27354b] outline-none focus:border-[#7664d8] focus:ring-2 focus:ring-[#7664d8]/10';
+  const inputClass = 'min-w-0 flex-1 rounded-md border border-[#c4cecd] bg-white px-3 py-2.5 text-sm text-[#17262b] outline-none focus:border-[#A52A32] focus:ring-2 focus:ring-[#A52A32]/10';
 
   if (value && !range) {
     return (
@@ -214,7 +231,7 @@ function MonthRangeField({ definition, value, onChange }) {
           onChange={(event) => updateRange(event.target.value, range?.end || '', range?.current || false)}
           aria-label={`${definition.label} start`}
         />
-        <span className="text-xs text-[#8993a4]">to</span>
+        <span className="text-xs text-[#6f8083]">to</span>
         <input
           type="month"
           className={inputClass}
@@ -224,16 +241,16 @@ function MonthRangeField({ definition, value, onChange }) {
           aria-label={`${definition.label} end`}
         />
       </div>
-      <label className="inline-flex w-fit items-center gap-2 text-xs font-medium text-[#68758a]">
+      <label className="inline-flex w-fit items-center gap-2 text-xs font-medium text-[#5b6b70]">
         <input
           type="checkbox"
           checked={range?.current || false}
           onChange={(event) => updateRange(range?.start || '', '', event.target.checked)}
-          className="size-4 accent-[#5945c7]"
+          className="size-4 accent-[#12363f]"
         />
         {definition.currentLabel || 'Currently working here'}
       </label>
-      <p className="m-0 text-[11px] font-normal text-[#8993a4]">Choose a start month and end month, or mark it as current.</p>
+      <p className="m-0 text-[11px] font-normal text-[#6f8083]">Choose a start month and end month, or mark it as current.</p>
     </div>
   );
 }
@@ -242,10 +259,10 @@ function Field({ definition, value, onChange }) {
   const content = definition.type === 'list'
     ? (Array.isArray(value) ? value : []).join('\n')
     : value ?? '';
-  const className = 'w-full border border-[#dce2ec] bg-white px-3 py-2.5 text-sm text-[#27354b] outline-none transition placeholder:text-[#9aa4b4] focus:border-[#7664d8] focus:ring-2 focus:ring-[#7664d8]/10';
+  const className = 'w-full rounded-md border border-[#c4cecd] bg-white px-3 py-2.5 text-sm text-[#17262b] outline-none transition placeholder:text-[#8a9899] focus:border-[#A52A32] focus:ring-2 focus:ring-[#A52A32]/10';
   return (
-    <div className="grid gap-1.5 text-xs font-bold text-[#536078]">
-      <span>{definition.label}{definition.required && <span className="ml-1 text-[#bd4654]" aria-hidden="true">*</span>}</span>
+    <div className="grid gap-1.5 text-xs font-bold text-[#3f5256]">
+      <span>{definition.label}{definition.required && <span className="ml-1 text-[#b3372f]" aria-hidden="true">*</span>}</span>
       {definition.type === 'tags' ? (
         <TagsField definition={definition} value={value} onChange={onChange} />
       ) : definition.type === 'monthRange' ? (
@@ -285,16 +302,16 @@ function Field({ definition, value, onChange }) {
           onChange={(event) => onChange(definition.key, event.target.value)}
         />
       )}
-      {definition.hint && <span className="text-[11px] font-normal text-[#8993a4]">{definition.hint}</span>}
+      {definition.hint && <span className="text-[11px] font-normal text-[#6f8083]">{definition.hint}</span>}
     </div>
   );
 }
 
 function SaveActions({ saving, onSave, onCancel }) {
   return (
-    <div className="mt-4 flex justify-end gap-2 border-t border-[#edf0f4] pt-4">
-      <button type="button" onClick={onCancel} disabled={saving} className="min-h-9 border border-[#dce2ec] px-3 text-xs font-bold text-[#5b6679] hover:bg-[#f7f8fb]">Cancel</button>
-      <button type="button" onClick={onSave} disabled={saving} className="inline-flex min-h-9 items-center gap-1.5 bg-[#5945c7] px-3.5 text-xs font-bold text-white hover:bg-[#4634ab] disabled:opacity-60">
+    <div className="mt-4 flex justify-end gap-2 border-t border-[#dbe2e1] pt-4">
+      <button type="button" onClick={onCancel} disabled={saving} className="min-h-9 rounded-md border border-[#c4cecd] px-3 text-xs font-bold text-[#3f5256] hover:bg-[#eef2f1]">Cancel</button>
+      <button type="button" onClick={onSave} disabled={saving} className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-[#7A1F2B] px-3.5 text-xs font-bold text-white hover:bg-[#A52A32] disabled:opacity-60">
         <Check size={14} /> {saving ? 'Saving…' : 'Save changes'}
       </button>
     </div>
@@ -412,17 +429,17 @@ function AvatarCropDialog({ file, error, saving, onCancel, onSave }) {
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-[#111322]/60 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onCancel(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title" className="my-auto w-full max-w-[420px] border border-[#e2e7ef] bg-white p-5 shadow-[0_24px_70px_#11132255] sm:p-6">
+      <section role="dialog" aria-modal="true" aria-labelledby="avatar-crop-title" className="my-auto w-full max-w-[420px] rounded-2xl border border-[#d3dad9] bg-white p-5 shadow-[0_24px_70px_#11132255] sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 id="avatar-crop-title" className="m-0 font-[Manrope] text-lg font-bold text-[#172338]">Adjust profile photo</h2>
-            <p className="mb-0 mt-1 text-xs text-[#778297]">Drag to reposition, then adjust the zoom.</p>
+            <h2 id="avatar-crop-title" className="m-0 font-[Bricolage_Grotesque,sans-serif] text-lg font-bold text-[#17262b]">Adjust profile photo</h2>
+            <p className="mb-0 mt-1 text-xs text-[#5b6b70]">Drag to reposition, then adjust the zoom.</p>
           </div>
-          <button type="button" onClick={onCancel} disabled={saving} className="grid size-8 shrink-0 place-items-center text-[#68758a] hover:bg-[#f3f4f8] disabled:opacity-50" aria-label="Cancel photo adjustment"><X size={18} /></button>
+          <button type="button" onClick={onCancel} disabled={saving} className="grid size-8 shrink-0 place-items-center text-[#5b6b70] hover:bg-[#e6ecea] disabled:opacity-50" aria-label="Cancel photo adjustment"><X size={18} /></button>
         </div>
         <div
           ref={viewportRef}
-          className="relative mx-auto aspect-square w-[min(78vw,320px)] touch-none cursor-grab overflow-hidden bg-[#ece9ff] active:cursor-grabbing"
+          className="relative mx-auto aspect-square w-[min(78vw,320px)] touch-none cursor-grab overflow-hidden rounded-2xl bg-[#d9e6e5] active:cursor-grabbing"
           onPointerDown={startDrag}
           onPointerMove={moveDrag}
           onPointerUp={stopDrag}
@@ -448,20 +465,55 @@ function AvatarCropDialog({ file, error, saving, onCancel, onSave }) {
           )}
           <div className="pointer-events-none absolute inset-0 border border-white/80 shadow-[inset_0_0_0_1px_#11132220]" />
         </div>
-        <label className="mt-5 grid gap-2 text-xs font-semibold text-[#536078]">
+        <label className="mt-5 grid gap-2 text-xs font-semibold text-[#3f5256]">
           Zoom
-          <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => updateZoom(event.target.value)} className="w-full accent-[#5945c7]" />
-          <span className="flex justify-between text-[11px] font-normal text-[#8993a4]"><span>Fit</span><span>{Math.round(zoom * 100)}%</span><span>3×</span></span>
+          <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(event) => updateZoom(event.target.value)} className="w-full accent-[#12363f]" />
+          <span className="flex justify-between text-[11px] font-normal text-[#6f8083]"><span>Fit</span><span>{Math.round(zoom * 100)}%</span><span>3×</span></span>
         </label>
-        {(error || cropError) && <p className="mb-0 mt-3 text-xs font-semibold text-[#bd4654]" role="alert">{cropError || error}</p>}
-        <div className="mt-5 flex justify-end gap-2 border-t border-[#edf0f4] pt-4">
-          <button type="button" onClick={onCancel} disabled={saving} className="min-h-9 border border-[#dce2ec] px-3 text-xs font-bold text-[#5b6679] hover:bg-[#f7f8fb] disabled:opacity-50">Cancel</button>
-          <button type="button" onClick={saveCrop} disabled={!imageSize || saving} className="inline-flex min-h-9 items-center gap-2 bg-[#5945c7] px-3.5 text-xs font-bold text-white hover:bg-[#4634ab] disabled:cursor-wait disabled:opacity-60">
+        {(error || cropError) && <p className="mb-0 mt-3 text-xs font-semibold text-[#b3372f]" role="alert">{cropError || error}</p>}
+        <div className="mt-5 flex justify-end gap-2 border-t border-[#dbe2e1] pt-4">
+          <button type="button" onClick={onCancel} disabled={saving} className="min-h-9 rounded-md border border-[#c4cecd] px-3 text-xs font-bold text-[#3f5256] hover:bg-[#eef2f1] disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={saveCrop} disabled={!imageSize || saving} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-[#12363f] px-3.5 text-xs font-bold text-white hover:bg-[#0c2a31] disabled:cursor-wait disabled:opacity-60">
             <Check size={14} /> {saving ? 'Uploading…' : 'Use this photo'}
           </button>
         </div>
       </section>
     </div>
+  );
+}
+
+function ProfilePageSkeleton() {
+  return (
+    <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-6 sm:px-7 lg:px-8 lg:pt-8" aria-busy="true" aria-label="Loading profile">
+      <div className="grid items-start gap-8 lg:grid-cols-[330px_minmax(0,1fr)] lg:gap-12">
+        <div className="min-h-[460px] animate-pulse rounded-[22px] bg-[#f1f2f4] p-6 sm:p-7">
+          <div className="size-32 rounded-[26px] bg-[#e1e3e7] sm:size-36" />
+          <div className="mt-7 h-8 w-3/4 rounded bg-[#e1e3e7]" />
+          <div className="mt-5 grid gap-3">
+            <div className="h-4 w-4/5 rounded bg-[#e1e3e7]" />
+            <div className="h-4 w-full rounded bg-[#e1e3e7]" />
+            <div className="h-4 w-5/6 rounded bg-[#e1e3e7]" />
+          </div>
+          <div className="mt-7 h-20 rounded-xl bg-[#e1e3e7]" />
+        </div>
+        <div className="min-w-0 animate-pulse">
+          <div className="mb-8 flex gap-6 border-b border-[#e5e7eb] pb-3">
+            {[20, 16, 28, 16, 24].map((width, index) => <div key={index} className="h-4 rounded bg-[#e1e3e7]" style={{ width: `${width * 4}px` }} />)}
+          </div>
+          {[0, 1, 2].map((section) => (
+            <div key={section} className="border-b border-[#e5e7eb] py-8 first:pt-2">
+              <div className="h-7 w-40 rounded bg-[#e1e3e7]" />
+              <div className="mt-6 grid gap-3">
+                <div className="h-4 w-full rounded bg-[#f1f2f4]" />
+                <div className="h-4 w-11/12 rounded bg-[#f1f2f4]" />
+                <div className="h-4 w-3/4 rounded bg-[#f1f2f4]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <span className="sr-only">Loading your profile…</span>
+    </main>
   );
 }
 
@@ -475,6 +527,8 @@ function ScsProfilePage() {
   const [saveError, setSaveError] = useState('');
   const [activeSection, setActiveSection] = useState('about');
   const [aboutExpanded, setAboutExpanded] = useState(false);
+  const aboutTextRef = useRef(null);
+  const personalEditFormRef = useRef(null);
   const [resumeError, setResumeError] = useState('');
   const [resumeMenuOpen, setResumeMenuOpen] = useState(false);
   const [resumeBusy, setResumeBusy] = useState(false);
@@ -493,27 +547,42 @@ function ScsProfilePage() {
 
   useEffect(() => {
     let active = true;
-    getJson('/api/auth/profile')
-      .then(({ profile: loaded }) => {
-        if (active) {
-          setProfile({ ...emptyProfile, ...loaded, skills: { ...emptyProfile.skills, ...loaded.skills } });
-          setLoadError('');
-          notifyAvatarChanged();
-          if (loaded.avatar?.filename) {
-            getBlob('/api/auth/profile/avatar')
-              .then((image) => {
-                if (active) setAvatarUrl(URL.createObjectURL(image));
-              })
-              .catch((error) => {
-                if (active) setAvatarError(error.message);
-              });
+    const loadProfile = async () => {
+      try {
+        const { profile: loaded } = await getJson('/api/auth/profile');
+        if (!active) return;
+        setProfile({ ...emptyProfile, ...loaded, skills: { ...emptyProfile.skills, ...loaded.skills } });
+        setLoadError('');
+        notifyAvatarChanged();
+        if (loaded.avatar?.filename) {
+          try {
+            const image = await getBlob('/api/auth/profile/avatar');
+            if (active) setAvatarUrl(URL.createObjectURL(image));
+          } catch (error) {
+            if (active) setAvatarError(error.message);
           }
         }
-      })
-      .catch((error) => { if (active) setLoadError(error.message); })
-      .finally(() => { if (active) setLoading(false); });
+      } catch (error) {
+        if (active) setLoadError(error.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadProfile();
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (editing !== 'personal' || !personalEditFormRef.current) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      const top = personalEditFormRef.current.getBoundingClientRect().top + window.scrollY - 112;
+      window.scrollTo({
+        top,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [editing]);
 
   useEffect(() => () => {
     if (avatarUrl.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
@@ -601,6 +670,28 @@ function ScsProfilePage() {
       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       block: 'start',
     });
+  };
+
+  const toggleAboutExpanded = () => {
+    const element = aboutTextRef.current;
+    if (!element) return;
+
+    const nextExpanded = !aboutExpanded;
+    element.style.height = `${element.getBoundingClientRect().height}px`;
+    setAboutExpanded(nextExpanded);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      element.style.height = nextExpanded ? 'auto' : '7rem';
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      element.style.height = nextExpanded ? `${element.scrollHeight}px` : '7rem';
+    });
+  };
+
+  const finishAboutHeightTransition = (event) => {
+    if (event.propertyName === 'height') {
+      event.currentTarget.style.height = aboutExpanded ? 'auto' : '7rem';
+    }
   };
 
   const uploadResume = async (event) => {
@@ -713,323 +804,407 @@ function ScsProfilePage() {
     fields.map(({ key, type }) => [key, type === 'tags' || type === 'list' ? [] : '']),
   );
 
-  const editCollection = (section, icon, title, entries, fields, emptyText) => {
+  const editCollection = (section, title, entries, fields, emptyText, layout = 'timeline') => {
     const isEditing = editing === section;
-    const startEditing = () => beginEdit(
-      section,
-      section === 'workExperience' ? [...entries, createEmptyEntry(fields)] : entries,
+    const startEditing = () => beginEdit(section, [...entries, createEmptyEntry(fields)]);
+    const dateText = (entry) => (entry.dates ? formatMonthRange(entry.dates) : formatMonth(entry.date));
+    const subtitle = (entry) => `${entry.company || entry.issuer || entry.degree || entry.field || ''}${entry.type ? ` · ${entry.type}` : ''}`;
+    const entryDetails = (entry) => (
+      <>
+        {dateText(entry) && <p className="m-0 text-xs font-semibold text-[#1d6b73]">{dateText(entry)}</p>}
+        <h3 className="m-0 mt-1 font-[Bricolage_Grotesque,sans-serif] text-lg font-semibold leading-snug text-[#17262b]">{entry.title || entry.institution || title}</h3>
+        {subtitle(entry) && <p className="mb-0 mt-1 text-sm text-[#4b5d62]">{subtitle(entry)}</p>}
+        {entry.location && <p className="mb-0 mt-2 inline-flex items-center gap-1 text-xs text-[#5b6b70]"><MapPin size={13} /> {entry.location}</p>}
+        {Array.isArray(entry.skills) && entry.skills.length > 0 && (
+          <div className="mt-3">
+            <p className="m-0 mb-2 text-xs font-bold uppercase tracking-wide text-[#5B21B6]">Skills</p>
+            <ul className="m-0 flex flex-wrap gap-2 p-0" aria-label="Skills used">
+              {entry.skills.map((skill, index) => (
+                <li key={`${skill}-${index}`} className="list-none rounded-full border border-[#D8B4FE] bg-[#F3E8FF] px-3 py-1 text-xs font-semibold text-[#5B21B6]">
+                  {skill}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {formatList(entry.points) && (
+          <ul className="mb-0 mt-4 grid list-none gap-2 p-0 text-sm leading-6 text-[#3f5256]">
+            {entry.points.map((point) => <li key={point} className="relative pl-4 before:absolute before:left-0 before:top-[11px] before:size-1.5 before:rounded-[2px] before:bg-[#f0b44c]">{point}</li>)}
+          </ul>
+        )}
+        {entry.credential && <p className="mb-0 mt-2 break-all text-xs text-[#5b6b70]">{entry.credential}</p>}
+      </>
     );
     return (
-      <section id={section === 'workExperience' ? 'experience' : section} className="scroll-mt-24">
-        <ProfileCard
-          icon={icon}
-          title={title}
-          action={['workExperience', 'education'].includes(section) && !isEditing ? (
-            <button type="button" onClick={startEditing} className="inline-flex min-h-8 items-center gap-1.5 border border-[#e0e4ed] px-2.5 text-xs font-bold text-[#5945c7] transition-colors hover:border-[#5945c7] hover:bg-[#f5f3ff]">
-              <Plus size={13} /> {section === 'workExperience' ? 'Add experience' : 'Add education'}
-            </button>
-          ) : (
-            <EditButton editing={isEditing} onClick={() => isEditing ? cancelEdit() : startEditing()} />
-          )}
-        >
-          {isEditing ? (
-            <>
-              <div className="grid gap-4">
-                {draft.map((entry, index) => (
-                  <div key={`${section}-${index}`} className="border border-[#e5e9f0] p-4">
-                    <div className="mb-3 flex justify-end">
-                      <button type="button" onClick={() => removeEntry(index)} className="inline-flex items-center gap-1 text-xs font-bold text-[#bd4654]"><X size={13} /> Remove</button>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {fields.map((field) => <Field key={field.key} definition={field} value={entry[field.key]} onChange={(key, value) => updateEntry(index, key, value)} />)}
-                    </div>
+      <Section
+        id={section === 'workExperience' ? 'experience' : section}
+        title={title}
+        action={['workExperience', 'education'].includes(section) && !isEditing ? (
+          <ProfileActionButton icon={Plus} onClick={startEditing}>
+            {section === 'workExperience' ? 'Add experience' : 'Add education'}
+          </ProfileActionButton>
+        ) : (
+          <EditButton editing={isEditing} onClick={() => isEditing ? cancelEdit() : startEditing()} />
+        )}
+      >
+        {isEditing ? (
+          <>
+            <div className="grid gap-4">
+              {draft.map((entry, index) => (
+                <div key={`${section}-${index}`} className="rounded-xl border border-[#d3dad9] bg-white p-4 sm:p-5">
+                  <div className="mb-3 flex justify-end">
+                    <button type="button" onClick={() => removeEntry(index)} className="inline-flex items-center gap-1 text-xs font-bold text-[#b3372f]"><X size={13} /> Remove</button>
                   </div>
-                ))}
-              </div>
-              <button type="button" onClick={() => setDraft((current) => [...current, createEmptyEntry(fields)])} className="mt-3 inline-flex min-h-9 items-center gap-1.5 border border-[#dce2ec] px-3 text-xs font-bold text-[#5945c7] hover:bg-[#f5f3ff]"><Plus size={14} /> Add {title.toLowerCase()}</button>
-              <SaveActions saving={saving} onSave={() => saveSection(section)} onCancel={cancelEdit} />
-            </>
-          ) : entries.length ? (
-            <div className="divide-y divide-[#e9edf3]">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {fields.map((field) => <Field key={field.key} definition={field} value={entry[field.key]} onChange={(key, value) => updateEntry(index, key, value)} />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => setDraft((current) => [...current, createEmptyEntry(fields)])} className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-[#c4cecd] bg-white px-3 text-xs font-bold text-[#12363f] hover:bg-[#e1eeed]"><Plus size={14} /> Add another {title.toLowerCase()}</button>
+            <SaveActions saving={saving} onSave={() => saveSection(section)} onCancel={cancelEdit} />
+          </>
+        ) : entries.length ? (
+          layout === 'tiles' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
               {entries.map((entry, index) => (
-                <article key={`${section}-${index}`} className="py-4 first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                    <div className="min-w-0">
-                      <h3 className="m-0 text-sm font-bold text-[#25334a]">{entry.title || entry.institution || title}</h3>
-                      <p className="mb-0 mt-1 text-sm text-[#657188]">{entry.company || entry.issuer || entry.degree || entry.field || ''}{entry.type ? ` · ${entry.type}` : ''}</p>
-                    </div>
-                    <p className="m-0 whitespace-nowrap pt-0.5 text-xs font-semibold text-[#66738a]">{entry.dates ? formatMonthRange(entry.dates) : formatMonth(entry.date)}</p>
-                  </div>
-                  {entry.location && <p className="mb-0 mt-2 inline-flex items-center gap-1 text-xs text-[#66738a]"><MapPin size={13} /> {entry.location}</p>}
-                  {formatList(entry.skills) && <p className="mb-0 mt-3 text-xs text-[#5945c7]"><strong>Skills:</strong> {formatList(entry.skills)}</p>}
-                  {formatList(entry.points) && <ul className="mb-0 mt-3 list-inside list-disc space-y-1 text-[13px] leading-5 text-[#56637a]">{entry.points.map((point) => <li key={point}>{point}</li>)}</ul>}
-                  {entry.credential && <p className="mb-0 mt-2 break-all text-xs text-[#66738a]">{entry.credential}</p>}
+                <article key={`${section}-${index}`} className="min-w-0 rounded-xl border border-[#d3dad9] bg-white p-5">
+                  {entryDetails(entry)}
                 </article>
               ))}
             </div>
-          ) : <p className="m-0 text-sm text-[#778297]">{emptyText}</p>}
-        </ProfileCard>
-      </section>
+          ) : (
+            <ol className="relative m-0 grid list-none gap-10 p-0 before:absolute before:bottom-1 before:left-[5px] before:top-2 before:w-px before:bg-[#b9c7c6]">
+              {entries.map((entry, index) => (
+                <li key={`${section}-${index}`} className="relative min-w-0 pl-9">
+                  <span className="absolute left-0 top-[5px] size-[11px] rounded-full border-2 border-[#12363f] bg-[#edf0ee]" aria-hidden="true" />
+                  {entryDetails(entry)}
+                </li>
+              ))}
+            </ol>
+          )
+        ) : <p className="m-0 text-sm text-[#5b6b70]">{emptyText}</p>}
+      </Section>
     );
   };
 
-  return (
-    <div className="min-h-screen overflow-x-clip bg-[#f5f7fb] font-['DM_Sans',_sans-serif] text-[#26334a]">
-      <div className="sticky top-0 z-50 h-[72px] bg-[#10101b] max-[720px]:h-[62px]">
-        <Navbar />
-      </div>
-      <main className="mx-auto max-w-[1180px] px-4 pb-16 sm:px-7 lg:px-8">
-        {loadError && <p className="mb-4 border border-[#f1c8cc] bg-[#fff4f4] p-3 text-sm text-[#a23340]" role="alert">{loadError}</p>}
-        {!token && <p className="mb-4 border border-[#f1d8a8] bg-[#fff9eb] p-3 text-sm text-[#805a1b]">Sign in to load and save your profile.</p>}
+  const aboutLong = profile.about.length > 200;
 
-        <section className="relative">
-          <div className="pointer-events-none absolute left-1/2 top-0 z-0 h-24 w-screen -translate-x-1/2 bg-[linear-gradient(115deg,#5144b8_0%,#3f79c9_48%,#33b8ae_100%)] sm:h-28" />
-          <div className="relative z-10 grid gap-0 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-7">
-            <div className="min-w-0 pt-8 sm:pt-10">
-              <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-                <div className="relative size-24 shrink-0 sm:size-28">
-                  <div className="grid size-full place-items-center overflow-hidden border-4 border-white bg-[#ece9ff] font-[Manrope] text-3xl font-extrabold text-[#5b47c9] shadow-sm">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt={`${name}'s profile`} className="size-full object-cover" />
-                    ) : initials(name)}
-                  </div>
-                  <div ref={avatarMenuRef} className="absolute bottom-2 right-2 z-20">
-                    <button
-                      type="button"
-                      onClick={() => setAvatarMenuOpen((open) => !open)}
-                      disabled={avatarUploading}
-                      className="grid size-8 place-items-center rounded-full border border-[#e1e6ef] bg-white/95 text-[#5945c7] shadow-md transition hover:bg-white disabled:cursor-wait disabled:opacity-60"
-                      aria-label="Profile photo options"
-                      aria-haspopup="menu"
-                      aria-expanded={avatarMenuOpen}
-                      title="Profile photo options"
-                    >
-                      <Pencil size={14} aria-hidden="true" />
-                    </button>
-                    {avatarMenuOpen && (
-                      <div role="menu" className="absolute right-0 top-full mt-2 w-44 overflow-hidden border border-[#e2e7ef] bg-white py-1 shadow-[0_12px_30px_#19294720]">
+  return (
+    <div className="min-h-screen overflow-x-clip bg-[#FFFFFF] font-['DM_Sans',_sans-serif] text-[#17262b]">
+      <style>{"@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=DM+Sans:wght@400;500;600;700&display=swap');"}</style>
+      <Navbar />
+      {loading ? <ProfilePageSkeleton /> : (
+      <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-6 sm:px-7 lg:px-8 lg:pt-8">
+        {loadError && <p className="mb-4 rounded-lg border border-[#e8b9b4] bg-[#fdf1ef] p-3 text-sm text-[#8f2d26]" role="alert">{loadError}</p>}
+        {!token && <p className="mb-4 rounded-lg border border-[#ecd29b] bg-[#fdf6e4] p-3 text-sm text-[#7a5614]">Sign in to load and save your profile.</p>}
+
+        <div className="grid items-start gap-8 lg:grid-cols-[330px_minmax(0,1fr)] lg:gap-12">
+          <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:rounded-[22px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div
+              className="relative rounded-[22px] border border-white/15 p-6 text-white sm:p-7"
+              style={{
+                background: 'linear-gradient(135deg, #4f1820 0%, #7A1F2B 30%, #8e292c 58%, #80321f 82%, #642619 100%)',
+              }}
+            >
+              {editing !== 'personal' && (
+                <div className="absolute right-5 top-5 z-10 sm:right-6 sm:top-6">
+                  <button
+                    type="button"
+                    onClick={() => beginEdit('personal', Object.fromEntries(sectionFields.personal.map(({ key }) => [key, profile[key] || ''])))}
+                    className="grid size-9 place-items-center rounded-full border border-white/30 text-white transition-colors hover:border-[#E97832] hover:bg-[#E97832] hover:text-[#4f1820] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E97832]"
+                    aria-label="Edit personal profile"
+                    title="Edit personal profile"
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+              <div className="relative size-32 sm:size-36">
+                <div className="grid size-full place-items-center overflow-hidden rounded-[26px] bg-[#641a25] font-[Bricolage_Grotesque,sans-serif] text-4xl font-bold text-[#E97832]">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={`${name}'s profile`} className="size-full object-cover" />
+                  ) : initials(name)}
+                </div>
+                <div ref={avatarMenuRef} className="absolute -bottom-2 -right-2 z-20">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarMenuOpen((open) => !open)}
+                    disabled={avatarUploading}
+                    className="grid size-9 place-items-center rounded-full border-2 border-[#7A1F2B] bg-[#E97832] text-[#4f1820] transition-transform hover:scale-105 disabled:cursor-wait disabled:opacity-60"
+                    aria-label="Profile photo options"
+                    aria-haspopup="menu"
+                    aria-expanded={avatarMenuOpen}
+                    title="Profile photo options"
+                  >
+                    <Pencil size={14} aria-hidden="true" />
+                  </button>
+                  {avatarMenuOpen && (
+                    <div role="menu" className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-lg bg-white py-1 text-[#17262b] shadow-[0_14px_34px_#00000040]">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setAvatarMenuOpen(false);
+                          avatarInput.current?.click();
+                        }}
+                        className="flex min-h-10 w-full items-center gap-2.5 px-3 text-left text-xs font-semibold transition hover:bg-[#e6efee]"
+                      >
+                        <Upload size={15} aria-hidden="true" />
+                        {avatarUrl ? 'Upload new image' : 'Upload image'}
+                      </button>
+                      {(avatarUrl || profile.avatar) && (
                         <button
                           type="button"
                           role="menuitem"
-                          onClick={() => {
-                            setAvatarMenuOpen(false);
-                            avatarInput.current?.click();
-                          }}
-                          className="flex min-h-10 w-full items-center gap-2.5 px-3 text-left text-xs font-semibold text-[#354258] transition hover:bg-[#f6f5ff] hover:text-[#5945c7]"
+                          onClick={removeAvatar}
+                          disabled={avatarUploading}
+                          className="flex min-h-10 w-full items-center gap-2.5 border-t border-[#dbe2e1] px-3 text-left text-xs font-semibold text-[#b3372f] transition hover:bg-[#fdf1ef] disabled:opacity-60"
                         >
-                          <Upload size={15} aria-hidden="true" />
-                          {avatarUrl ? 'Upload new image' : 'Upload image'}
+                          <X size={15} aria-hidden="true" />
+                          Remove image
                         </button>
-                        {(avatarUrl || profile.avatar) && (
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={removeAvatar}
-                            disabled={avatarUploading}
-                            className="flex min-h-10 w-full items-center gap-2.5 border-t border-[#edf0f4] px-3 text-left text-xs font-semibold text-[#bd4654] transition hover:bg-[#fff5f5] disabled:opacity-60"
-                          >
-                            <X size={15} aria-hidden="true" />
-                            Remove image
-                          </button>
-                        )}
-                        <p className="m-0 border-t border-[#edf0f4] px-3 py-2 text-[10px] font-medium text-[#8993a4]">JPEG, PNG, or WebP · Max 2 MB</p>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    ref={avatarInput}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={uploadAvatar}
-                    className="sr-only"
-                    aria-label="Choose profile photo"
-                  />
-                </div>
-              </div>
-              {avatarError && <p className="mb-0 mt-3 max-w-sm text-xs font-semibold text-[#bd4654]" role="alert">{avatarError}</p>}
-              {editing === 'personal' ? (
-                <div className="mt-5">
-                  <div className="grid gap-3 sm:grid-cols-2">{sectionFields.personal.map((field) => <Field key={field.key} definition={field} value={draft[field.key]} onChange={updateDraft} />)}</div>
-                  <SaveActions saving={saving} onSave={() => saveSection('personal')} onCancel={cancelEdit} />
-                </div>
-              ) : (
-                <div className="mt-4 max-w-3xl">
-                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                    <h2 className="m-0 flex flex-wrap items-center gap-2 font-[Manrope] text-xl font-bold tracking-[-.03em] text-[#172338] sm:text-[22px]">{name}{profile.name && <BadgeCheck size={17} className="fill-[#21b49a] text-white" aria-label="Verified learner" />}</h2>
-                    <EditButton editing={false} onClick={() => beginEdit('personal', Object.fromEntries(sectionFields.personal.map(({ key }) => [key, profile[key] || ''])))} />
-                  </div>
-                  <div className="mt-3 flex max-w-[440px] items-center gap-3 py-1">
-                    <span className="grid size-8 shrink-0 place-items-center text-[#5945c7]">
-                      <FileText size={17} aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="m-0 text-xs font-bold text-[#27354b]">{profile.resume ? 'Resume' : 'Upload your resume'}</p>
-                      <p className="m-0 mt-0.5 truncate text-[11px] text-[#778297]">
-                        {profile.resume
-                          ? `${profile.resume.filename} · ${(profile.resume.size / 1024 / 1024).toFixed(2)} MB`
-                          : 'PDF, DOC, or DOCX · Up to 5 MB'}
-                      </p>
+                      )}
+                      <p className="m-0 border-t border-[#dbe2e1] px-3 py-2 text-[10px] font-medium text-[#6f8083]">JPEG, PNG, or WebP · Max 2 MB</p>
                     </div>
-                    {profile.resume ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={downloadResume}
-                          disabled={resumeBusy}
-                          className="grid size-8 shrink-0 place-items-center text-[#5945c7] transition hover:bg-[#f5f3ff] disabled:opacity-50"
-                          aria-label="Download resume"
-                          title="Download resume"
-                        >
-                          <ArrowDownToLine size={17} aria-hidden="true" />
-                        </button>
-                        <div ref={resumeMenuRef} className="relative shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setResumeMenuOpen((open) => !open)}
-                            disabled={resumeBusy}
-                            className="grid size-8 place-items-center text-[#5945c7] transition hover:bg-[#f5f3ff] disabled:opacity-50"
-                            aria-label="Resume options"
-                            aria-haspopup="menu"
-                            aria-expanded={resumeMenuOpen}
-                            title="Resume options"
-                          >
-                            <Pencil size={15} aria-hidden="true" />
-                          </button>
-                          {resumeMenuOpen && (
-                            <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-36 border border-[#e2e7ef] bg-white py-1 shadow-[0_12px_30px_#19294720]">
-                              <button type="button" role="menuitem" onClick={() => { setResumeMenuOpen(false); fileInput.current?.click(); }} className="flex min-h-9 w-full items-center gap-2 px-3 text-left text-xs font-semibold text-[#354258] hover:bg-[#f6f5ff] hover:text-[#5945c7]">
-                                <Upload size={14} aria-hidden="true" /> Update
-                              </button>
-                              <button type="button" role="menuitem" onClick={removeResume} disabled={resumeBusy} className="flex min-h-9 w-full items-center gap-2 border-t border-[#edf0f4] px-3 text-left text-xs font-semibold text-[#bd4654] hover:bg-[#fff5f5] disabled:opacity-50">
-                                <X size={14} aria-hidden="true" /> Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => fileInput.current?.click()}
-                        disabled={saving}
-                        className="grid size-8 shrink-0 place-items-center text-[#5945c7] transition hover:bg-[#f5f3ff] disabled:opacity-50"
-                        aria-label="Upload resume"
-                        title="Upload resume"
-                      >
-                        <Pencil size={15} aria-hidden="true" />
-                      </button>
-                    )}
-                    <input ref={fileInput} className="sr-only" type="file" accept=".pdf,.doc,.docx" onChange={uploadResume} />
+                  )}
+                </div>
+                <input
+                  ref={avatarInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={uploadAvatar}
+                  className="sr-only"
+                  aria-label="Choose profile photo"
+                />
+              </div>
+              {avatarError && <p className="mb-0 mt-4 text-xs font-semibold text-[#ffb4a8]" role="alert">{avatarError}</p>}
+
+              {editing !== 'personal' && (
+                <>
+                  <div className="mt-6">
+                    <h1 title={name} className="m-0 flex min-w-0 items-center gap-2 whitespace-nowrap font-[Bricolage_Grotesque,sans-serif] text-[clamp(18px,2.2vw,28px)] font-bold leading-[1.1] tracking-[-0.02em]">
+                      <span className="truncate">{name}</span>
+                      {profile.name && <BadgeCheck size={20} className="fill-[#E97832] text-[#7A1F2B]" aria-label="Verified learner" />}
+                    </h1>
                   </div>
-                  {resumeError && <p className="mb-0 mt-1 text-xs font-semibold text-[#c2414f]" role="alert">{resumeError}</p>}
-                  <div className="mt-2.5 grid gap-1.5 text-[13px] leading-5 text-[#526077] sm:text-sm">
-                    {(profile.headline || profile.jobTitle) && (
-                      <p className="m-0 font-medium text-[#27354b]">
+
+                  <div className="mt-3 grid gap-2 text-sm leading-6 text-white/80">
+                    {(profile.headline || profile.jobTitle || profile.companyName) && (
+                      <p className="m-0 font-medium text-white">
                         {profile.headline}
-                        {profile.headline && profile.jobTitle && <span className="px-2 text-[#a0a9b8]">|</span>}
+                        {profile.headline && profile.jobTitle && <span className="px-2 text-white/40">|</span>}
                         {profile.jobTitle}
                       </p>
                     )}
+                    {profile.companyName && <p className="m-0"><span className="font-semibold text-white">Company:</span> {profile.companyName}</p>}
                     {profile.experienceYears && (
                       <p className="m-0">
-                        <span className="font-semibold text-[#344258]">Total years of work experience:</span>{' '}
+                        <span className="font-semibold text-white">Total years of work experience:</span>{' '}
                         {/\byears?\b/i.test(String(profile.experienceYears)) ? profile.experienceYears : `${profile.experienceYears}+ years`}
                       </p>
                     )}
-                    {profile.specialization && <p className="m-0"><span className="font-semibold text-[#344258]">Specialization:</span> {profile.specialization}</p>}
-                    {profile.location && <p className="m-0 inline-flex items-center gap-1.5 text-xs text-[#68758a] sm:text-[13px]"><MapPin size={14} /> {profile.location}</p>}
-                    {profile.applauds > 0 && <p className="m-0 inline-flex items-center gap-1.5 text-xs font-semibold text-[#168566] sm:text-[13px]"><Hand size={15} /> {profile.applauds} Applauds</p>}
+                    {profile.specialization && <p className="m-0"><span className="font-semibold text-white">Specialization:</span> {profile.specialization}</p>}
+                    {profile.location && <p className="m-0 inline-flex items-center gap-1.5"><MapPin size={14} className="shrink-0 text-[#E97832]" /> {profile.location}</p>}
+                    {profile.applauds > 0 && <p className="m-0 inline-flex items-center gap-1.5 font-semibold text-[#E97832]"><Hand size={15} /> {profile.applauds} Applauds</p>}
                   </div>
-                </div>
+
+                  <div className="mt-6 rounded-xl bg-white/[0.08] p-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/10 text-[#E97832]">
+                        <FileText size={18} aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 text-xs font-bold text-white">{profile.resume ? 'Resume' : 'Upload your resume'}</p>
+                        <p className="m-0 mt-0.5 truncate text-[11px] text-white/65">
+                          {profile.resume
+                            ? `${profile.resume.filename} · ${(profile.resume.size / 1024 / 1024).toFixed(2)} MB`
+                            : 'PDF, DOC, or DOCX · Up to 5 MB'}
+                        </p>
+                      </div>
+                      {profile.resume ? (
+                        <>
+                          <div ref={resumeMenuRef} className="relative shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setResumeMenuOpen((open) => !open)}
+                              disabled={resumeBusy}
+                              className="grid size-8 place-items-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50"
+                              aria-label="Resume options"
+                              aria-haspopup="menu"
+                              aria-expanded={resumeMenuOpen}
+                              title="Resume options"
+                            >
+                              <Pencil size={15} aria-hidden="true" />
+                            </button>
+                            {resumeMenuOpen && (
+                              <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-36 overflow-hidden rounded-lg bg-white py-1 text-[#17262b] shadow-[0_14px_34px_#00000040]">
+                                <button type="button" role="menuitem" onClick={() => { setResumeMenuOpen(false); fileInput.current?.click(); }} className="flex min-h-9 w-full items-center gap-2 px-3 text-left text-xs font-semibold hover:bg-[#e6efee]">
+                                  <Upload size={14} aria-hidden="true" /> Update
+                                </button>
+                                <button type="button" role="menuitem" onClick={removeResume} disabled={resumeBusy} className="flex min-h-9 w-full items-center gap-2 border-t border-[#dbe2e1] px-3 text-left text-xs font-semibold text-[#b3372f] hover:bg-[#fdf1ef] disabled:opacity-50">
+                                  <X size={14} aria-hidden="true" /> Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={downloadResume}
+                            disabled={resumeBusy}
+                            className="grid size-8 shrink-0 place-items-center rounded-md bg-[#E97832] text-[#4f1820] transition-colors hover:bg-[#f18a49] disabled:opacity-50"
+                            aria-label="Download resume"
+                            title="Download resume"
+                          >
+                            <ArrowDownToLine size={16} aria-hidden="true" />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => fileInput.current?.click()}
+                          disabled={saving}
+                          className="grid size-8 shrink-0 place-items-center rounded-md bg-[#E97832] text-[#4f1820] transition-colors hover:bg-[#f18a49] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50"
+                          aria-label="Upload resume"
+                          title="Upload resume"
+                        >
+                          <Upload size={15} aria-hidden="true" />
+                        </button>
+                      )}
+                      <input ref={fileInput} className="sr-only" type="file" accept=".pdf,.doc,.docx" onChange={uploadResume} />
+                    </div>
+                    {resumeError && <p className="mb-0 mt-2 text-xs font-semibold text-[#ffb4a8]" role="alert">{resumeError}</p>}
+                  </div>
+                </>
               )}
-              <nav className="mt-4 flex flex-wrap" aria-label="Profile sections">
-                {sectionLinks.map(([id, label]) => <a key={id} href={`#${id}`} onClick={(event) => jumpToSection(event, id)} className={`border-l border-[#d9deea] px-4 py-1 text-xs font-bold leading-4 no-underline transition-colors first:border-l-0 first:pl-0 ${activeSection === id ? 'text-[#5945c7]' : 'text-[#737e91] hover:text-[#5945c7]'}`}>{label}</a>)}
-              </nav>
+
             </div>
-            <div className="grid content-start gap-5 pt-5 lg:pt-14">
-              <ProfileCard icon={ShieldCheck} title="Badges" action={<EditButton editing={editing === 'badges'} onClick={() => editing === 'badges' ? cancelEdit() : beginEdit('badges', { badges: profile.badges })} />}>
-                {editing === 'badges' ? (
-                  <><Field definition={{ key: 'badges', label: 'Badges (one per line)', list: true }} value={draft.badges} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('badges')} onCancel={cancelEdit} /></>
-                ) : profile.badges.length ? <ul className="m-0 grid gap-2 p-0">{profile.badges.map((badge) => <li key={badge} className="flex items-center gap-2 text-sm text-[#536078]"><BadgeCheck size={16} className="text-[#19a88a]" />{badge}</li>)}</ul> : <p className="m-0 text-sm text-[#778297]">No badges added yet.</p>}
-              </ProfileCard>
-              <ProfileCard icon={Heart} title="Interests" action={<EditButton editing={editing === 'interests'} onClick={() => editing === 'interests' ? cancelEdit() : beginEdit('interests', { interests: profile.interests })} />}>
-                {editing === 'interests' ? (
-                  <><Field definition={{ key: 'interests', label: 'Interests (one per line)', list: true }} value={draft.interests} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('interests')} onCancel={cancelEdit} /></>
-                ) : profile.interests.length ? <div className="flex flex-wrap gap-2">{profile.interests.map((interest) => <span key={interest} className="border border-[#e3e7ef] bg-[#f7f8fb] px-2.5 py-1 text-xs font-semibold text-[#58657a]">{interest}</span>)}</div> : <p className="m-0 text-sm text-[#778297]">No interests added yet.</p>}
-              </ProfileCard>
-            </div>
-          </div>
-        </section>
+          </aside>
 
-        {saveError && <p className="mt-4 border border-[#f1c8cc] bg-[#fff4f4] p-3 text-sm text-[#a23340]" role="alert">{saveError}</p>}
-        {loading ? <p className="py-10 text-center text-sm text-[#68758a]">Loading your profile…</p> : (
-          <div className="mt-6 grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="grid min-w-0 gap-5">
-              <section id="about" className="scroll-mt-24 pb-3">
-                <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-                  <h2 className="m-0 flex items-center gap-2.5 font-[Manrope] text-base font-bold text-[#172338]">
-                    <UserRound size={18} className="text-[#5945c7]" aria-hidden="true" />
-                    About Me
-                  </h2>
-                  <EditButton editing={editing === 'about'} onClick={() => editing === 'about' ? cancelEdit() : beginEdit('about', { about: profile.about })} />
-                </div>
-                {editing === 'about' ? (
-                  <>
-                    <Field definition={sectionFields.about[0]} value={draft.about} onChange={updateDraft} />
-                    <SaveActions saving={saving} onSave={() => saveSection('about', { about: draft.about })} onCancel={cancelEdit} />
-                  </>
-                ) : (
-                  <>
-                    <p className={`m-0 whitespace-pre-wrap text-sm leading-7 text-[#526077] ${aboutExpanded ? '' : 'line-clamp-4'}`}>{profile.about || <span className="text-[#778297]">Add a short introduction about yourself.</span>}</p>
-                    {profile.about.length > 200 && <button type="button" onClick={() => setAboutExpanded((expanded) => !expanded)} className="mt-2 inline-flex items-center gap-1 text-sm font-bold text-[#5945c7]">{aboutExpanded ? 'Read Less' : 'Read More'} <ChevronDown size={15} className={aboutExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} /></button>}
-                  </>
-                )}
-              </section>
+          <div className="min-w-0">
+            <nav className="sticky top-0 z-20 -mx-1 mb-8 flex gap-1 overflow-x-auto bg-white px-1 backdrop-blur" aria-label="Profile sections">
+              {sectionLinks.map(([id, label]) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  onClick={(event) => jumpToSection(event, id)}
+                  className={`relative whitespace-nowrap px-4 py-3 text-sm no-underline transition-colors ${activeSection === id ? 'font-bold text-[#a52a32]' : 'font-medium text-[#5b6b70] hover:text-[#17262b]'}`}
+                >
+                  {label}
+                  {activeSection === id && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-x-0 bottom-0 h-0.5"
+                      style={{ background: navbarGradient }}
+                    />
+                  )}
+                </a>
+              ))}
+            </nav>
 
-              <section id="languages" className="scroll-mt-24 py-3">
-                <div className="mb-3 flex min-h-9 items-center justify-between gap-4">
-                  <h2 className="m-0 flex items-center gap-2.5 font-[Manrope] text-base font-bold text-[#27354b]">
-                    <Languages size={17} className="text-[#5945c7]" aria-hidden="true" />
-                    Languages Spoken
-                  </h2>
-                  <EditButton editing={editing === 'languages'} onClick={() => editing === 'languages' ? cancelEdit() : beginEdit('languages', { languages: profile.languages })} />
-                </div>
-                {editing === 'languages' ? (
-                  <>
-                    <Field definition={sectionFields.about[1]} value={draft.languages} onChange={updateDraft} />
-                    <SaveActions saving={saving} onSave={() => saveSection('about', { languages: draft.languages })} onCancel={cancelEdit} />
-                  </>
-                ) : (
-                  <p className="m-0 text-sm text-[#5e6b80]">{Array.isArray(profile.languages) && profile.languages.length ? profile.languages.join(', ') : <span className="text-[#778297]">No languages added yet.</span>}</p>
-                )}
-              </section>
+            {editing === 'personal' && (
+              <div ref={personalEditFormRef} className="mb-8 scroll-mt-28 rounded-2xl border border-[#d3dad9] bg-white p-5 sm:p-6">
+                <div className="grid gap-4 sm:grid-cols-2">{sectionFields.personal.map((field) => <Field key={field.key} definition={field} value={draft[field.key]} onChange={updateDraft} />)}</div>
+                <SaveActions saving={saving} onSave={() => saveSection('personal')} onCancel={cancelEdit} />
+              </div>
+            )}
 
-              <section id="skills" className="scroll-mt-24">
-                <ProfileCard icon={Sparkles} title="Skills" action={<EditButton editing={editing === 'skills'} onClick={() => editing === 'skills' ? cancelEdit() : beginEdit('skills', profile.skills)} />}>
+            {saveError && <p className="mb-6 rounded-lg border border-[#e8b9b4] bg-[#fdf1ef] p-3 text-sm text-[#8f2d26]" role="alert">{saveError}</p>}
+              <div>
+                <Section
+                  id="about"
+                  title="About Me"
+                  action={<EditButton editing={editing === 'about'} onClick={() => editing === 'about' ? cancelEdit() : beginEdit('about', { about: profile.about })} />}
+                >
+                  {editing === 'about' ? (
+                    <>
+                      <Field definition={sectionFields.about[0]} value={draft.about} onChange={updateDraft} />
+                      <SaveActions saving={saving} onSave={() => saveSection('about', { about: draft.about })} onCancel={cancelEdit} />
+                    </>
+                  ) : (
+                    <>
+                      <p
+                        ref={aboutTextRef}
+                        id="about-description"
+                        onTransitionEnd={finishAboutHeightTransition}
+                        className="m-0 h-28 max-w-[68ch] overflow-hidden whitespace-pre-wrap text-[15px] leading-7 text-[#3f5256] transition-[height] duration-500 ease-in-out motion-reduce:transition-none"
+                      >
+                        {profile.about || <span className="text-[#5b6b70]">Add a short introduction about yourself.</span>}
+                      </p>
+                      {aboutLong && <button type="button" onClick={toggleAboutExpanded} aria-expanded={aboutExpanded} aria-controls="about-description" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#1d6b73] hover:text-[#12363f]">{aboutExpanded ? 'Read Less' : 'Read More'} <ChevronDown size={15} className={`transition-transform duration-300 motion-reduce:transition-none ${aboutExpanded ? 'rotate-180' : ''}`} /></button>}
+                    </>
+                  )}
+                </Section>
+
+                <Section
+                  id="languages"
+                  title="Languages Spoken"
+                  action={<EditButton editing={editing === 'languages'} onClick={() => editing === 'languages' ? cancelEdit() : beginEdit('languages', { languages: profile.languages })} />}
+                >
+                  {editing === 'languages' ? (
+                    <>
+                      <Field definition={sectionFields.about[1]} value={draft.languages} onChange={updateDraft} />
+                      <SaveActions saving={saving} onSave={() => saveSection('about', { languages: draft.languages })} onCancel={cancelEdit} />
+                    </>
+                  ) : (
+                    <p className="m-0 text-[15px] text-[#3f5256]">{Array.isArray(profile.languages) && profile.languages.length ? profile.languages.join(', ') : <span className="text-[#5b6b70]">No languages added yet.</span>}</p>
+                  )}
+                </Section>
+
+                <Section
+                  id="skills"
+                  title="Skills"
+                  action={<EditButton editing={editing === 'skills'} onClick={() => editing === 'skills' ? cancelEdit() : beginEdit('skills', profile.skills)} />}
+                >
                   {editing === 'skills' ? (
-                    <><div className="grid gap-3">{sectionFields.skills.map((field) => <Field key={field.key} definition={field} value={draft[field.key]} onChange={updateDraft} />)}</div><SaveActions saving={saving} onSave={() => saveSection('skills', { skills: draft })} onCancel={cancelEdit} /></>
+                    <><div className="grid gap-4">{sectionFields.skills.map((field) => <Field key={field.key} definition={field} value={draft[field.key]} onChange={updateDraft} />)}</div><SaveActions saving={saving} onSave={() => saveSection('skills', { skills: draft })} onCancel={cancelEdit} /></>
                   ) : Object.entries(profile.skills).some(([, entries]) => entries.length) ? (
-                    <div className="grid gap-4">{Object.entries(profile.skills).map(([level, entries]) => entries.length > 0 && <div key={level} className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3"><span className="shrink-0 pt-1.5 text-xs font-semibold text-[#526078] sm:w-28">{level}</span><div className="flex min-w-0 flex-1 flex-wrap gap-2">{entries.map((skill) => <span key={skill} className="border border-[#dfe5ee] bg-[#f7f8fa] px-3 py-1.5 text-xs font-medium text-[#42516a]">{skill}</span>)}</div></div>)}</div>
-                  ) : <p className="m-0 text-sm text-[#778297]">Add your skills and proficiency levels.</p>}
-                </ProfileCard>
-              </section>
+                    <div className="grid gap-6">
+                      {Object.entries(profile.skills).map(([level, entries]) => entries.length > 0 && (
+                        <div key={level}>
+                          <div className="mb-3 flex items-center gap-2.5">
+                            <span className="flex gap-1" aria-hidden="true">
+                              {[1, 2, 3].map((step) => <span key={step} className={`size-2 rounded-full ${step <= (levelRank[level] || 1) ? '' : 'bg-[#e2e4e7]'}`} style={step <= (levelRank[level] || 1) ? { backgroundColor: levelAccent[level] || levelAccent.Beginner } : undefined} />)}
+                            </span>
+                            <h3 className="m-0 text-sm font-semibold text-[#17262b]">{level}</h3>
+                          </div>
+                          <div className="flex min-w-0 flex-wrap gap-2">
+                            {entries.map((skill) => <span key={skill} className={`rounded-md px-3 py-1.5 text-[13px] font-medium ${levelChip[level] || levelChip.Beginner}`}>{skill}</span>)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="m-0 text-sm text-[#5b6b70]">Add your skills and proficiency levels.</p>}
+                </Section>
 
-              {editCollection('workExperience', BriefcaseBusiness, 'Work Experience', profile.workExperience, sectionFields.workExperience, 'No work experience added yet.')}
-              {editCollection('education', GraduationCap, 'Education', profile.education, sectionFields.education, 'No education added yet.')}
-              {editCollection('certifications', BadgeCheck, 'Certifications', profile.certifications, sectionFields.certifications, 'No certifications added yet.')}
-            </div>
+                {editCollection('workExperience', 'Work Experience', profile.workExperience, sectionFields.workExperience, 'No work experience added yet.')}
+                {editCollection('education', 'Education', profile.education, sectionFields.education, 'No education added yet.')}
+                {editCollection('certifications', 'Certifications', profile.certifications, sectionFields.certifications, 'No certifications added yet.', 'tiles')}
 
-            <aside className="grid min-w-0 content-start gap-5 lg:sticky lg:top-5">
-              <section className="border border-[#e2e7ef] bg-white p-5 shadow-[0_8px_24px_#19294708]">
-                <h2 className="m-0 font-[Manrope] text-sm font-bold text-[#27354b]">Profile visibility</h2>
-                <p className="mb-0 mt-2 text-xs leading-5 text-[#68758a]">Your profile helps mentors and the learning community understand your experience.</p>
-                <div className="mt-4 flex items-center gap-2 text-xs font-bold text-[#168566]"><ShieldCheck size={15} /> Student profile</div>
-              </section>
-              <a href="/dashboard" className="inline-flex min-h-11 items-center justify-between border border-[#dce2ed] bg-white px-4 text-sm font-bold text-[#4b5870] no-underline hover:border-[#7664d8] hover:text-[#5945c7]">Go to My Learning <ArrowUpRight size={16} /></a>
-            </aside>
+                <Section
+                  id="badges"
+                  title="Badges"
+                  action={<EditButton editing={editing === 'badges'} onClick={() => editing === 'badges' ? cancelEdit() : beginEdit('badges', { badges: profile.badges })} />}
+                >
+                  {editing === 'badges' ? (
+                    <><Field definition={{ key: 'badges', label: 'Badges (one per line)', list: true }} value={draft.badges} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('badges')} onCancel={cancelEdit} /></>
+                  ) : profile.badges.length ? <ul className="m-0 grid list-none gap-2.5 p-0">{profile.badges.map((badge) => <li key={badge} className="flex items-center gap-2.5 text-[15px] text-[#3f5256]"><BadgeCheck size={18} className="shrink-0 text-[#1d6b73]" />{badge}</li>)}</ul> : <p className="m-0 text-sm text-[#5b6b70]">No badges added yet.</p>}
+                </Section>
+
+                <Section
+                  id="interests"
+                  title="Interests"
+                  action={<EditButton editing={editing === 'interests'} onClick={() => editing === 'interests' ? cancelEdit() : beginEdit('interests', { interests: profile.interests })} />}
+                >
+                  {editing === 'interests' ? (
+                    <><Field definition={{ key: 'interests', label: 'Interests (one per line)', list: true }} value={draft.interests} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('interests')} onCancel={cancelEdit} /></>
+                  ) : profile.interests.length ? <div className="flex flex-wrap gap-2">{profile.interests.map((interest) => <span key={interest} className="rounded-full border border-[#c4cecd] bg-white px-3.5 py-1.5 text-[13px] font-medium text-[#3f5256]">{interest}</span>)}</div> : <p className="m-0 text-sm text-[#5b6b70]">No interests added yet.</p>}
+                </Section>
+              </div>
           </div>
-        )}
+        </div>
       </main>
+      )}
       {avatarCropFile && (
         <AvatarCropDialog
           file={avatarCropFile}

@@ -2,9 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { ArrowUpRight, Bell, BookOpen, Heart, HelpCircle, LogOut, Menu, MoreVertical, Settings, ShoppingCart, User, Wallet, X } from 'lucide-react';
 import { getBlob } from '../../../services/api.js';
 
-function Navbar({ onAuth, light = false }) {
+const RING_WIDTH = 6; // golden line ki thickness (px)
+const RING_CORNER = 28; // bottom corner radius (px) - className ke rounded-b-[28px] ke saath same rakhna
+const RING_FADE = 90; // bottom corners ke baad line kitni door tak fade hoke khatam hogi (px)
+
+// Orange-to-maroon accent gradient
+const RING_GRADIENT =
+  'linear-gradient(90deg, #7A1F2B 0%, #A52A32 22%, #D34B2F 48%, #E97832 68%, #C94C2D 84%, #7A1F2B 100%)';
+
+// Top + left + right edge aur dono bottom corners
+const ringStyle = {
+  padding: `${RING_WIDTH}px`,
+  WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  WebkitMaskComposite: 'xor',
+  mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+  maskComposite: 'exclude',
+  background: RING_GRADIENT,
+};
+
+// Bottom corners ke baad line smoothly fade hoke khatam hoti hai, bottom ka beech wala hissa khali rehta hai
+const ringFadeMask = {
+  WebkitMaskImage: 'linear-gradient(#000, #000), linear-gradient(to right, #000, transparent), linear-gradient(to left, #000, transparent)',
+  maskImage: 'linear-gradient(#000, #000), linear-gradient(to right, #000, transparent), linear-gradient(to left, #000, transparent)',
+  WebkitMaskSize: `100% calc(100% - ${RING_CORNER}px), ${RING_FADE}px ${RING_CORNER + 2}px, ${RING_FADE}px ${RING_CORNER + 2}px`,
+  maskSize: `100% calc(100% - ${RING_CORNER}px), ${RING_FADE}px ${RING_CORNER + 2}px, ${RING_FADE}px ${RING_CORNER + 2}px`,
+  WebkitMaskPosition: 'top left, bottom left, bottom right',
+  maskPosition: 'top left, bottom left, bottom right',
+  WebkitMaskRepeat: 'no-repeat',
+  maskRepeat: 'no-repeat',
+};
+
+function Navbar({ onAuth }) {
+  const isHomePage = window.location.pathname === '/';
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 32);
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('scs_user') || 'null');
@@ -13,6 +45,19 @@ function Navbar({ onAuth, light = false }) {
     }
   });
   const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+
+  useEffect(() => {
+    const updateScrollState = () => {
+      const scrollY = window.scrollY;
+      setIsScrolled((scrolled) => {
+        if (!scrolled && scrollY > 32) return true;
+        if (scrolled && scrollY < 8) return false;
+        return scrolled;
+      });
+    };
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollState);
+  }, []);
 
   useEffect(() => {
     const updateUser = (event) => setUser(event.detail || null);
@@ -102,12 +147,20 @@ function Navbar({ onAuth, light = false }) {
   };
 
   return (
-    <header className={`sticky inset-x-0 top-0 z-50 flex h-[72px] items-center justify-between gap-[clamp(24px,5vw,72px)] border-b px-[clamp(20px,6vw,94px)] max-[720px]:h-[62px] max-[720px]:px-[18px] ${light ? 'border-[#edf0f4] bg-white' : 'border-white/[0.06] bg-[#10101b]/95'}`}>
-      <a className="inline-flex h-[60px] w-[140px] items-center overflow-hidden no-underline max-[720px]:h-[52px] max-[720px]:w-[120px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
+    <header className={`${isHomePage ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 h-[96px] px-4 pt-6 max-[720px]:h-[78px] max-[720px]:px-2 max-[720px]:pt-4`}>
+      <div className={`relative mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between gap-[clamp(18px,3vw,40px)] border bg-white px-[clamp(18px,2.4vw,36px)] text-[#202330] transition-[transform,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[720px]:h-[62px] max-[720px]:px-[18px] ${isScrolled ? '-translate-y-6 max-[720px]:-translate-y-4 rounded-t-none rounded-b-[28px] border-transparent shadow-[0_8px_24px_#15162918]' : 'translate-y-0 rounded-2xl border-[#e7e9ef] shadow-[0_8px_30px_#15162920]'}`}>
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-500 motion-reduce:transition-none ${isScrolled ? 'opacity-100' : 'opacity-0'}`}
+        style={ringFadeMask}
+      >
+        <div className="absolute inset-0 rounded-[inherit]" style={ringStyle} />
+      </div>
+      <a className="relative z-10 inline-flex h-[60px] w-[140px] shrink-0 items-center overflow-hidden no-underline max-[720px]:h-[52px] max-[720px]:w-[120px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
         <img className="h-full w-full object-cover object-center" src="/images/logo.png" alt="SCS Academy" />
       </a>
       <button
-        className={`hidden size-[35px] place-items-center rounded-[6px] border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#aa9bff] max-[720px]:grid ${light ? 'border-[#dfe3ea] bg-white text-[#24384d]' : 'border-white/[0.10] bg-white/[0.03] text-white'}`}
+        className="relative z-10 hidden size-[35px] place-items-center rounded-md border border-[#dfe3ea] bg-white text-[#24384d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[720px]:grid"
         aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
         aria-expanded={menuOpen}
         aria-controls="marketing-navigation"
@@ -117,14 +170,14 @@ function Navbar({ onAuth, light = false }) {
       </button>
       <nav
         id="marketing-navigation"
-        className={`flex flex-1 items-center gap-[clamp(20px,3.2vw,46px)] max-[720px]:absolute max-[720px]:top-[61px] max-[720px]:right-0 max-[720px]:left-0 max-[720px]:flex-col max-[720px]:items-stretch max-[720px]:gap-0 max-[720px]:border-b max-[720px]:px-[17px] max-[720px]:pb-4 max-[720px]:pt-2 ${light ? 'text-[#687789] max-[720px]:border-[#edf0f4] max-[720px]:bg-white' : 'max-[720px]:border-white/[0.10] max-[720px]:bg-[#14131f]'} ${menuOpen ? 'max-[720px]:flex' : 'max-[720px]:hidden'}`}
+        className={`relative z-10 flex flex-1 items-center gap-[clamp(16px,2vw,28px)] text-[#303545] max-[720px]:absolute max-[720px]:top-[61px] max-[720px]:right-0 max-[720px]:left-0 max-[720px]:flex-col max-[720px]:items-stretch max-[720px]:gap-0 max-[720px]:border max-[720px]:border-t-0 max-[720px]:border-[#e7e9ef] max-[720px]:bg-white max-[720px]:px-[17px] max-[720px]:pb-4 max-[720px]:pt-2 max-[720px]:shadow-[0_12px_20px_#15162918] ${menuOpen ? 'max-[720px]:flex' : 'max-[720px]:hidden'}`}
         aria-label="Main navigation"
       >
-        <a className={`text-[14px] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:px-[3px] max-[720px]:py-3 ${light ? 'text-[#687789] max-[720px]:border-[#edf0f4]' : 'text-[#b7b4c3] max-[720px]:border-white/[0.07]'}`} href="/bim" onClick={closeMenu}>Learn BIM</a>
-        <a className={`text-[14px] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:px-[3px] max-[720px]:py-3 ${light ? 'text-[#687789] max-[720px]:border-[#edf0f4]' : 'text-[#b7b4c3] max-[720px]:border-white/[0.07]'}`} href="/#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/bim" onClick={closeMenu}>Learn BIM</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
 
-        <a className={`text-[14px] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:px-[3px] max-[720px]:py-3 ${light ? 'text-[#687789] max-[720px]:border-[#edf0f4]' : 'text-[#b7b4c3] max-[720px]:border-white/[0.07]'}`} href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
-        <a className={`text-[14px] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:px-[3px] max-[720px]:py-3 ${light ? 'text-[#687789] max-[720px]:border-[#edf0f4]' : 'text-[#b7b4c3] max-[720px]:border-white/[0.07]'}`} href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
         <div className={`ml-auto flex items-center gap-[10px] max-[720px]:ml-0 max-[720px]:mt-3 max-[720px]:justify-start ${user ? 'absolute right-6 top-1/2 -translate-y-1/2 max-[720px]:right-[18px] max-[720px]:top-[11px] max-[720px]:translate-y-0' : ''}`}>
           {user ? (
             <div
@@ -134,7 +187,7 @@ function Navbar({ onAuth, light = false }) {
             >
               <button
                 type="button"
-                className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#aa9bff]"
+                className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#e1e5ec] bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
                 aria-label={`Open ${user.name || 'your'} account menu`}
                 aria-expanded={profileOpen}
                 aria-controls="profile-menu"
@@ -195,14 +248,15 @@ function Navbar({ onAuth, light = false }) {
             </div>
           ) : (
             <>
-              <button className={`min-h-10 cursor-pointer rounded-[6px] border bg-transparent px-4 font-['DM_Sans'] text-[14px] font-bold hover:border-[#b7a5ff] ${light ? 'border-[#dfe3ea] text-[#24384d]' : 'border-white/[0.16] text-[#efedf7]'}`} onClick={() => openAuth('login')}>Login</button>
-              <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-white bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#211a37] hover:border-[#e9e9e9] hover:bg-[#e9e9e9]" onClick={() => openAuth('join')}>
+              <button className="min-h-10 cursor-pointer rounded-md border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#24384d] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('login')}>Login</button>
+              <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#202330] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('join')}>
                 Join now <ArrowUpRight size={15} />
               </button>
             </>
           )}
         </div>
-      </nav>
+        </nav>
+      </div>
     </header>
   );
 }
