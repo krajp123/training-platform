@@ -40,8 +40,10 @@ admin/
   vite.config.js
   src/
     app/                  Admin app entry
-    features/dashboard/   Admin dashboard feature
-    services/            Backend API client
+    auth/                 Admin login, session state, and token helpers
+    pages/                Admin dashboard and other pages
+    components/           Shared admin UI components
+    services/             Admin API client
     index.css
     main.jsx
 ```
@@ -65,7 +67,7 @@ The workspace starts all three services:
 
 Both Vite apps proxy `/api` requests to the backend. Start individual parts from the project root with `npm run dev:frontend`, `npm run dev:admin`, or `npm run dev:backend`. You can also run `npm run dev` from inside `frontend/` or `admin/` to start only that app, and from inside `backend/` to start only the API. To use the learner frontend with API features, keep the backend running in a separate terminal.
 
-The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and signup use OTP verification. Set the backend environment variables below before starting the API:
+The public marketing homepage is at `/` and the learner dashboard is at `/dashboard`. Login and signup use OTP verification; signed-in users can create a password and optionally enable password-plus-phone-OTP two-factor sign-in from `/account-settings`.
 
 ```bash
 # If Node cannot resolve Atlas SRV records on your network, use the direct
@@ -73,6 +75,8 @@ The public marketing homepage is at `/` and the learner dashboard is at `/dashbo
 MONGODB_URI=mongodb+srv://...
 MONGODB_DB=skillpath
 OTP_SECRET=replace-with-a-long-random-secret
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=replace-with-a-long-unique-password
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -99,14 +103,19 @@ This builds both React applications. The backend is a Node.js service and does n
 ## API routes
 
 - `GET /api/health`
+- `POST /api/admin-auth/login`, `GET /api/admin-auth/me`, `POST /api/admin-auth/logout`
 - `GET /api/courses`, `POST /api/courses`
 - `PATCH /api/courses/:id`, `DELETE /api/courses/:id`
 - `GET /api/live-classes`, `POST /api/live-classes`, `DELETE /api/live-classes/:id`
 - `POST /api/enrollments`
 - `POST /api/auth/request-otp`
 - `POST /api/auth/verify-otp`
+- `POST /api/auth/password-login`
 - `GET /api/auth/profile` (authenticated)
 - `PATCH /api/auth/profile` (authenticated; saves a profile section)
+- `PATCH /api/auth/profile/security/password` (authenticated; creates or changes a password)
+- `POST /api/auth/profile/phone/request-otp`, `POST /api/auth/profile/phone/verify-otp` (authenticated; verifies an additional phone number)
+- `POST /api/auth/profile/security/two-factor/request-otp`, `POST /api/auth/profile/security/two-factor/verify-otp` (authenticated; verifies and changes 2FA setting)
 - `GET /api/auth/profile/resume` (authenticated file download)
 - `DELETE /api/auth/profile/resume` (authenticated; removes the resume)
 - `GET /api/auth/profile/avatar` (authenticated image response)
@@ -116,4 +125,4 @@ This builds both React applications. The backend is a Node.js service and does n
 
 ## Demo limitations
 
-The API currently stores catalog, class, and enrollment changes in memory; users, profiles, resumes, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for other protected routes, session refresh/revocation, and real classroom/lesson integrations.
+The admin app at http://127.0.0.1:5174 requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` to be set in the backend environment. Set a unique, strong password and never commit real credentials. Admin sessions expire after eight hours; course and live-class write routes require a valid admin session. The API currently stores catalog, class, and enrollment changes in memory; users, profiles, resumes, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for other protected routes, stronger login rate limiting, and real classroom/lesson integrations.

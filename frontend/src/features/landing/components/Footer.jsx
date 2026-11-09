@@ -36,13 +36,13 @@ function FooterColumn({ title, links }) {
   );
 }
 
-function Footer() {
+function Footer({ showAccent = true }) {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
     <footer className="relative overflow-hidden bg-white px-[clamp(24px,5vw,80px)] pt-16 text-[#686674] max-[720px]:pt-12">
       {/* top accent line + soft glows */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#8b6cff]/45 to-transparent" aria-hidden="true" />
+      {showAccent && <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#8b6cff]/45 to-transparent" aria-hidden="true" />}
 
       <div className="relative z-10 mx-auto w-full max-w-[1280px]">
         <div className="grid grid-cols-[minmax(320px,1.5fr)_minmax(140px,.8fr)_minmax(220px,1.2fr)_minmax(140px,.8fr)] gap-x-8 gap-y-10 pb-12 max-[960px]:grid-cols-2 max-[720px]:gap-x-6 max-[720px]:pb-10 max-[480px]:grid-cols-1">

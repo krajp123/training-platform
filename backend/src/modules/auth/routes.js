@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { deleteAvatar, deleteResume, downloadResume, getAvatar, getProfile, saveProfile, sendOtp, uploadAvatar, uploadResume, verify } from './controller.js';
+import {
+  changePassword, deleteAvatar, deleteResume, downloadResume, getAvatar, getProfile,
+  loginWithPassword, requestPhoneOtp, requestTwoFactorOtp, saveProfile, sendOtp,
+  uploadAvatar, uploadResume, verify, verifyPhoneOtp, verifyTwoFactorOtp,
+} from './controller.js';
 
 const router = Router();
 const resumeUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -17,8 +21,14 @@ const avatarUpload = multer({
 
 router.post('/request-otp', sendOtp);
 router.post('/verify-otp', verify);
+router.post('/password-login', loginWithPassword);
 router.get('/profile', getProfile);
 router.patch('/profile', saveProfile);
+router.patch('/profile/security/password', changePassword);
+router.post('/profile/phone/request-otp', requestPhoneOtp);
+router.post('/profile/phone/verify-otp', verifyPhoneOtp);
+router.post('/profile/security/two-factor/request-otp', requestTwoFactorOtp);
+router.post('/profile/security/two-factor/verify-otp', verifyTwoFactorOtp);
 router.post('/profile/resume', resumeUpload.single('resume'), uploadResume);
 router.get('/profile/resume', downloadResume);
 router.delete('/profile/resume', deleteResume);

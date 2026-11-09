@@ -19,8 +19,11 @@ function getDatabase() {
     database = client.connect().then(async (connection) => {
       const db = connection.db(databaseName);
       await db.collection('users').createIndex({ identifier: 1 }, { unique: true });
+      await db.collection('users').createIndex({ phone: 1 }, { unique: true, sparse: true });
       await db.collection('otp_challenges').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
       await db.collection('sessions').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+      await db.collection('password_login_attempts').createIndex({ attemptKey: 1 }, { unique: true });
+      await db.collection('password_login_attempts').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
       return db;
     });
   }
@@ -119,6 +122,11 @@ export async function requestOtp({ identifier: rawIdentifier, purpose, name }) {
       error.statusCode = 404;
       throw error;
     }
+    if (user.twoFactorEnabled) {
+      const error = new Error('Two-factor authentication is enabled. Sign in with your password to continue.');
+      error.statusCode = 403;
+      throw error;
+    }
   }
 
   const otp = createOtp();
@@ -163,9 +171,18 @@ export async function verifyOtp({ identifier: rawIdentifier, purpose, otp, name 
 
   await challenges.deleteOne({ _id: challenge._id });
   const users = db.collection('users');
-  let user = await users.findOne({ identifier: identifier.value });
+  let user = purpose === 'two-factor-login' && challenge.userId
+    ? await users.findOne({ _id: challenge.userId })
+    : await users.findOne({ identifier: identifier.value });
   if (!user && purpose === 'signup') {
-    user = { identifier: identifier.value, type: identifier.type, name: String(name || challenge.name || '').trim(), createdAt: new Date(), updatedAt: new Date() };
+    user = {
+      identifier: identifier.value,
+      type: identifier.type,
+      name: String(name || challenge.name || '').trim(),
+      ...(identifier.type === 'phone' ? { phone: identifier.value, phoneVerified: true } : {}),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     const result = await users.insertOne(user);
     user._id = result.insertedId;
   }
@@ -175,9 +192,36 @@ export async function verifyOtp({ identifier: rawIdentifier, purpose, otp, name 
     throw error;
   }
 
+  if (purpose === 'login' && user.twoFactorEnabled) {
+    throw makeError('Two-factor authentication is enabled. Sign in with your password to continue.', 403);
+  }
+  if (purpose === 'two-factor-login' && !user.twoFactorEnabled) {
+    const error = new Error('Two-factor authentication is no longer enabled for this account.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return createSession(user);
+}
+
+function createSession(user) {
   const token = crypto.randomBytes(32).toString('hex');
-  await db.collection('sessions').insertOne({ tokenHash: hashOtp(token), userId: user._id, createdAt: new Date(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-  return { token, user: { id: String(user._id), name: user.name, identifier: user.identifier, type: user.type } };
+  return getDatabase().then(async (db) => {
+    await db.collection('sessions').insertOne({
+      tokenHash: hashOtp(token),
+      userId: user._id,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+    return {
+      token,
+      user: {
+        id: String(user._id),
+        name: user.name,
+        identifier: user.identifier,
+        type: user.type,
+      },
+    };
+  });
 }
 
 export { normalizeIdentifier };
@@ -207,16 +251,225 @@ export async function getAuthenticatedUser(token) {
   return user;
 }
 
+function makeError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+async function sendChallenge(identifier, purpose, extra = {}) {
+  const db = await getDatabase();
+  const challenges = db.collection('otp_challenges');
+  const challengeFilter = { identifier: identifier.value, purpose, ...extra };
+  const existing = await challenges.findOne(challengeFilter);
+  const cooldownRemaining = existing
+    ? existing.createdAt.getTime() + RESEND_COOLDOWN_MS - Date.now()
+    : 0;
+  if (cooldownRemaining > 0) {
+    const retryAfterSeconds = Math.ceil(cooldownRemaining / 1000);
+    const error = makeError(`Please wait ${retryAfterSeconds} seconds before requesting another OTP.`, 429);
+    error.retryAfterSeconds = retryAfterSeconds;
+    throw error;
+  }
+
+  const otp = createOtp();
+  const challenge = {
+    identifier: identifier.value,
+    type: identifier.type,
+    purpose,
+    otpHash: hashOtp(otp),
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    attempts: 0,
+    ...extra,
+  };
+  await challenges.updateOne(
+    challengeFilter,
+    { $set: challenge },
+    { upsert: true },
+  );
+  try {
+    await sendOtp(identifier, otp);
+  } catch (error) {
+    await challenges.deleteOne({ ...challengeFilter, otpHash: challenge.otpHash });
+    throw error;
+  }
+  return { message: `Verification code sent to your ${identifier.type}.`, expiresInSeconds: OTP_TTL_MS / 1000 };
+}
+
+function normalizePassword(password) {
+  if (typeof password !== 'string' || password.length < 8 || password.length > 128) {
+    throw makeError('Password must be between 8 and 128 characters.');
+  }
+  return password;
+}
+
+function derivePassword(password, salt) {
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, 64, (error, derivedKey) => {
+      if (error) reject(error);
+      else resolve(derivedKey);
+    });
+  });
+}
+
+async function passwordMatches(user, password) {
+  if (typeof password !== 'string' || password.length > 128 || !user.passwordHash || !user.passwordSalt) return false;
+  const supplied = await derivePassword(password, Buffer.from(user.passwordSalt, 'base64'));
+  const stored = Buffer.from(user.passwordHash, 'base64');
+  return stored.length === supplied.length && crypto.timingSafeEqual(stored, supplied);
+}
+
+export async function setUserPassword(userId, { password, currentPassword }) {
+  const normalizedPassword = normalizePassword(password);
+  const db = await getDatabase();
+  const users = db.collection('users');
+  const user = await users.findOne({ _id: userId });
+  if (!user) throw makeError('Account not found.', 404);
+  if (user.passwordHash && !(await passwordMatches(user, currentPassword || ''))) {
+    throw makeError('Current password is incorrect.', 401);
+  }
+
+  const salt = crypto.randomBytes(16);
+  const passwordHash = await derivePassword(normalizedPassword, salt);
+  await users.updateOne(
+    { _id: userId },
+    { $set: { passwordSalt: salt.toString('base64'), passwordHash: passwordHash.toString('base64'), updatedAt: new Date() } },
+  );
+  return { passwordEnabled: true };
+}
+
+export async function passwordLogin({ identifier: rawIdentifier, password, remoteAddress = '' }) {
+  const identifier = normalizeIdentifier(rawIdentifier);
+  const db = await getDatabase();
+  const attemptKey = crypto.createHash('sha256')
+    .update(`${identifier.value}:${remoteAddress}`)
+    .digest('hex');
+  const attempts = db.collection('password_login_attempts');
+  const existingAttempts = await attempts.findOne({ attemptKey });
+  if (existingAttempts?.attempts >= 5 && existingAttempts.expiresAt > new Date()) {
+    throw makeError('Too many sign-in attempts. Please wait 15 minutes and try again.', 429);
+  }
+  const user = await db.collection('users').findOne({
+    $or: [{ identifier: identifier.value }, { phone: identifier.value }],
+  });
+  if (!user?.passwordHash || !(await passwordMatches(user, String(password || '')))) {
+    await attempts.updateOne(
+      { attemptKey },
+      { $inc: { attempts: 1 }, $set: { expiresAt: new Date(Date.now() + 15 * 60 * 1000) } },
+      { upsert: true },
+    );
+    throw makeError('Invalid email/phone number or password.', 401);
+  }
+  await attempts.deleteOne({ attemptKey });
+
+  if (user.twoFactorEnabled) {
+    const verifiedPhone = user.phone || (user.type === 'phone' ? user.identifier : '');
+    if (!verifiedPhone || !(user.phoneVerified ?? user.type === 'phone')) {
+      throw makeError('Add and verify a phone number before using two-factor sign-in.', 400);
+    }
+    await sendChallenge({ type: 'phone', value: verifiedPhone }, 'two-factor-login', { userId: user._id });
+    return { requiresOtp: true, identifier: verifiedPhone, message: 'A verification code was sent to your verified phone.' };
+  }
+
+  return createSession(user);
+}
+
+export async function requestPhoneVerification(userId, rawPhone) {
+  const phone = normalizeIdentifier(rawPhone);
+  if (phone.type !== 'phone') throw makeError('Enter a phone number with country code, such as +919876543210.');
+  const db = await getDatabase();
+  const user = await db.collection('users').findOne({ _id: userId });
+  if (!user) throw makeError('Account not found.', 404);
+  if (user.phone === phone.value && user.phoneVerified) {
+    throw makeError('This phone number is already verified on your account.');
+  }
+  const existingPhoneUser = await db.collection('users').findOne({
+    phone: phone.value,
+    _id: { $ne: userId },
+  });
+  const primaryUser = await db.collection('users').findOne({
+    identifier: phone.value,
+    _id: { $ne: userId },
+  });
+  if (existingPhoneUser || primaryUser) throw makeError('This phone number is already associated with another account.', 409);
+
+  await sendChallenge(phone, 'phone-link', { userId });
+  return { message: 'Verification code sent to your phone.', expiresInSeconds: OTP_TTL_MS / 1000 };
+}
+
+export async function verifyPhoneNumber(userId, { phone: rawPhone, otp }) {
+  const phone = normalizeIdentifier(rawPhone);
+  if (phone.type !== 'phone') throw makeError('Enter a valid phone number with country code.');
+  const db = await getDatabase();
+  const challenges = db.collection('otp_challenges');
+  const challenge = await challenges.findOne({ identifier: phone.value, purpose: 'phone-link', userId });
+  if (!challenge || challenge.expiresAt < new Date()) throw makeError('This OTP has expired. Request a new code.');
+  if (challenge.attempts >= MAX_ATTEMPTS) throw makeError('Too many incorrect attempts. Request a new OTP.', 429);
+  if (challenge.otpHash !== hashOtp(String(otp || '').trim())) {
+    await challenges.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
+    throw makeError('Incorrect OTP.');
+  }
+
+  await db.collection('users').updateOne(
+    { _id: userId },
+    { $set: { phone: phone.value, phoneVerified: true, updatedAt: new Date() } },
+  );
+  await challenges.deleteOne({ _id: challenge._id });
+  return { phone: phone.value, phoneVerified: true };
+}
+
+export async function requestTwoFactorChange(userId) {
+  const db = await getDatabase();
+  const user = await db.collection('users').findOne({ _id: userId });
+  if (!user) throw makeError('Account not found.', 404);
+  if (!user.passwordHash) throw makeError('Create a password before enabling two-factor authentication.');
+  const verifiedPhone = user.phone || (user.type === 'phone' ? user.identifier : '');
+  if (!verifiedPhone || !(user.phoneVerified ?? user.type === 'phone')) throw makeError('Add and verify a phone number before enabling two-factor authentication.');
+  await sendChallenge({ type: 'phone', value: verifiedPhone }, 'two-factor-change', { userId });
+  return { message: `Verification code sent to ${verifiedPhone}.`, expiresInSeconds: OTP_TTL_MS / 1000 };
+}
+
+export async function verifyTwoFactorChange(userId, { otp, enabled }) {
+  if (typeof enabled !== 'boolean') throw makeError('Choose whether to enable or disable two-factor authentication.');
+  const db = await getDatabase();
+  const challenges = db.collection('otp_challenges');
+  const user = await db.collection('users').findOne({ _id: userId });
+  if (!user) throw makeError('Account not found.', 404);
+  const challenge = await challenges.findOne({
+    identifier: user.phone || (user.type === 'phone' ? user.identifier : ''),
+    purpose: 'two-factor-change',
+    userId,
+  });
+  if (!challenge || challenge.expiresAt < new Date()) throw makeError('This OTP has expired. Request a new code.');
+  if (challenge.attempts >= MAX_ATTEMPTS) throw makeError('Too many incorrect attempts. Request a new OTP.', 429);
+  if (challenge.otpHash !== hashOtp(String(otp || '').trim())) {
+    await challenges.updateOne({ _id: challenge._id }, { $inc: { attempts: 1 } });
+    throw makeError('Incorrect OTP.');
+  }
+  if (enabled && (!user.passwordHash || !user.phoneVerified)) {
+    throw makeError('A password and verified phone are required for two-factor authentication.');
+  }
+
+  await db.collection('users').updateOne({ _id: userId }, { $set: { twoFactorEnabled: enabled, updatedAt: new Date() } });
+  await challenges.deleteOne({ _id: challenge._id });
+  return { twoFactorEnabled: enabled };
+}
+
 export async function getUserProfile(userId) {
   const db = await getDatabase();
   const [user, profile] = await Promise.all([
-    db.collection('users').findOne({ _id: userId }, { projection: { name: 1, identifier: 1, type: 1 } }),
+    db.collection('users').findOne({ _id: userId }, { projection: { name: 1, identifier: 1, type: 1, phone: 1, phoneVerified: 1, passwordHash: 1, twoFactorEnabled: 1 } }),
     db.collection('profiles').findOne({ userId }, { projection: { _id: 0, userId: 0, 'resume.data': 0, 'avatar.data': 0 } }),
   ]);
   return {
     name: user?.name || '',
     identifier: user?.identifier || '',
     type: user?.type || '',
+    phone: user?.phone || (user?.type === 'phone' ? user.identifier : ''),
+    phoneVerified: user?.phoneVerified ?? user?.type === 'phone',
+    passwordEnabled: Boolean(user?.passwordHash),
+    twoFactorEnabled: Boolean(user?.twoFactorEnabled),
     headline: '',
     jobTitle: '',
     companyName: '',
@@ -365,7 +618,7 @@ export async function removeUserResume(userId) {
 }
 
 const profileSections = new Set([
-  'personal', 'about', 'skills', 'workExperience', 'education',
+  'personal', 'about', 'socialLinks', 'skills', 'workExperience', 'education',
   'certifications', 'badges', 'interests',
 ]);
 
@@ -379,6 +632,7 @@ export async function updateUserProfile(userId, section, data) {
   const allowedFields = {
     personal: ['name', 'headline', 'jobTitle', 'companyName', 'experienceYears', 'specialization', 'location'],
     about: ['about', 'languages'],
+    socialLinks: ['socialLinks'],
     skills: ['skills'],
     workExperience: ['workExperience'],
     education: ['education'],
@@ -400,6 +654,29 @@ export async function updateUserProfile(userId, section, data) {
       const error = new Error(`${field} is too long.`);
       error.statusCode = 400;
       throw error;
+    }
+    if (updates.socialLinks !== undefined) {
+      if (!updates.socialLinks || typeof updates.socialLinks !== 'object' || Array.isArray(updates.socialLinks)) {
+        throw makeError('Social links must be an object.');
+      }
+      const links = {};
+      for (const key of ['website', 'linkedin', 'instagram', 'youtube']) {
+        const value = String(updates.socialLinks[key] || '').trim();
+        if (!value) {
+          links[key] = '';
+          continue;
+        }
+        if (value.length > 500) throw makeError(`${key} link is too long.`);
+        let parsed;
+        try {
+          parsed = new URL(value);
+        } catch {
+          throw makeError(`Enter a valid URL for ${key}.`);
+        }
+        if (!['http:', 'https:'].includes(parsed.protocol)) throw makeError(`${key} link must use HTTP or HTTPS.`);
+        links[key] = parsed.toString();
+      }
+      updates.socialLinks = links;
     }
     if (Array.isArray(value) && value.length > 50) {
       const error = new Error(`${field} has too many entries.`);

@@ -19,9 +19,12 @@ function AuthModal() {
   const [mode, setMode] = useState('');
   const [notice, setNotice] = useState('');
   const [step, setStep] = useState('identifier');
+  const [loginMethod, setLoginMethod] = useState('otp');
+  const [otpPurpose, setOtpPurpose] = useState('');
   const [identifier, setIdentifier] = useState('');
   const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -29,8 +32,11 @@ function AuthModal() {
     const open = (event) => {
       setMode(event.detail === 'join' ? 'join' : event.detail);
       setStep('identifier');
+      setLoginMethod('otp');
+      setOtpPurpose(event.detail === 'signup' ? 'signup' : 'login');
       setError('');
       setOtp('');
+      setPassword('');
     };
     window.addEventListener('scs-auth', open);
     if (new URLSearchParams(window.location.search).get('join') === '1') setMode('join');
@@ -38,8 +44,19 @@ function AuthModal() {
   }, []);
 
   const close = () => {
+    localStorage.removeItem('scs_checkout_redirect');
     setMode('');
     if (window.location.search) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+  };
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setStep('identifier');
+    setLoginMethod('otp');
+    setOtpPurpose(nextMode);
+    setOtp('');
+    setPassword('');
+    setError('');
   };
 
   const requestCode = () => {
@@ -57,15 +74,49 @@ function AuthModal() {
     event.preventDefault();
     requestCode();
   };
+  const loginWithPassword = (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    postJson('/api/auth/password-login', { identifier, password })
+      .then((result) => {
+        if (result.requiresOtp) {
+          setIdentifier(result.identifier);
+          setOtpPurpose('two-factor-login');
+          setStep('otp');
+          setNotice(result.message);
+          return;
+        }
+        localStorage.setItem('scs_session_token', result.token);
+        localStorage.setItem('scs_user', JSON.stringify(result.user));
+        window.dispatchEvent(new CustomEvent('scs-auth-state', { detail: result.user }));
+        const shouldRedirectToCheckout = localStorage.getItem('scs_checkout_redirect') === '1';
+        localStorage.removeItem('scs_checkout_redirect');
+        if (shouldRedirectToCheckout) {
+          window.location.assign('/checkout');
+          return;
+        }
+        close();
+        setNotice('');
+      })
+      .catch((requestError) => setError(requestError.message))
+      .finally(() => setBusy(false));
+  };
   const verify = (event) => {
     event.preventDefault();
     setBusy(true);
     setError('');
-    postJson('/api/auth/verify-otp', { identifier, name, otp, purpose: mode })
+    postJson('/api/auth/verify-otp', { identifier, name, otp, purpose: otpPurpose || mode })
       .then((result) => {
         localStorage.setItem('scs_session_token', result.token);
         localStorage.setItem('scs_user', JSON.stringify(result.user));
         window.dispatchEvent(new CustomEvent('scs-auth-state', { detail: result.user }));
+        const shouldRedirectToCheckout = localStorage.getItem('scs_checkout_redirect') === '1';
+        localStorage.removeItem('scs_checkout_redirect');
+        if (shouldRedirectToCheckout) {
+          window.location.assign('/checkout');
+          return;
+        }
         close();
         setNotice('');
       })
@@ -81,14 +132,16 @@ function AuthModal() {
         <section className={`auth-flip${mode === 'signup' ? ' is-register' : ''}`} role="dialog" aria-modal="true" aria-labelledby={`auth-title-${mode}`}>
           <button className="auth-close" aria-label="Close dialog" onClick={close}><X size={17} /></button>
           <div className="auth-flip-shape" aria-hidden="true" />
-          <form className="auth-flip-panel is-form is-login-form" aria-hidden={mode !== 'login'} onSubmit={step === 'otp' ? verify : submit}>
+          <form className="auth-flip-panel is-form is-login-form" aria-hidden={mode !== 'login'} onSubmit={step === 'otp' ? verify : loginMethod === 'password' ? loginWithPassword : submit}>
             <h2 id="auth-title-login" className="auth-flip-title auth-login-title item" style={{ '--i': 0 }}>Log in to continue your learning journey</h2>
-            {step === 'otp' ? <div className="auth-login-field item" style={{ '--i': 1 }}><input className="auth-login-identifier" id="auth-login-otp" value={otp} onChange={(event) => setOtp(event.target.value)} inputMode="numeric" maxLength={6} placeholder=" " aria-label="One-time password" required /><label className="auth-login-label" htmlFor="auth-login-otp">Enter OTP</label></div> : <div className="auth-login-field item" style={{ '--i': 1 }}><input className="auth-login-identifier" id="auth-login-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} name="identifier" type="text" autoComplete="username" placeholder=" " aria-label="Email or Phone Number" required /><label className="auth-login-label" htmlFor="auth-login-identifier">Email or Phone Number</label></div>}
-            <button className="auth-flip-submit auth-login-continue item" style={{ '--i': 2 }} type="submit" disabled={busy}>{busy ? 'Please wait...' : step === 'otp' ? 'Verify OTP' : 'Send OTP'}</button>
+            {step === 'otp' ? <div className="auth-login-field item" style={{ '--i': 1 }}><input className="auth-login-identifier" id="auth-login-otp" value={otp} onChange={(event) => setOtp(event.target.value)} inputMode="numeric" maxLength={6} autoComplete="one-time-code" placeholder=" " aria-label="One-time password" required /><label className="auth-login-label" htmlFor="auth-login-otp">Enter OTP</label></div> : <div className="auth-login-field item" style={{ '--i': 1 }}><input className="auth-login-identifier" id="auth-login-identifier" value={identifier} onChange={(event) => setIdentifier(event.target.value)} name="identifier" type="text" autoComplete="username" placeholder=" " aria-label="Email or Phone Number" required /><label className="auth-login-label" htmlFor="auth-login-identifier">Email or Phone Number</label></div>}
+            {step !== 'otp' && loginMethod === 'password' && <div className="auth-login-field item" style={{ '--i': 2 }}><input className="auth-login-identifier" id="auth-login-password" value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" placeholder=" " aria-label="Password" required /><label className="auth-login-label" htmlFor="auth-login-password">Password</label></div>}
+            <button className="auth-flip-submit auth-login-continue item" style={{ '--i': 2 }} type="submit" disabled={busy}>{busy ? 'Please wait...' : step === 'otp' ? 'Verify OTP' : loginMethod === 'password' ? 'Log in' : 'Send OTP'}</button>
+            {step !== 'otp' && <p className="auth-flip-switch item" style={{ '--i': 3 }}>Use <button type="button" onClick={() => setLoginMethod((method) => method === 'otp' ? 'password' : 'otp')}>{loginMethod === 'otp' ? 'password' : 'OTP'} instead</button></p>}
             {error && <p className="auth-error item" role="alert">{error}</p>}
             <p className="auth-login-divider item" style={{ '--i': 3 }}>Other log in options</p>
             <button className="auth-login-google item" style={{ '--i': 4 }} type="button" onClick={() => setNotice('Google sign-in will be available when authentication is connected.')}><GoogleMark /><span>Sign in with Google</span></button>
-            <p className="auth-flip-switch item" style={{ '--i': 5 }}>Don’t have an account? <button type="button" onClick={() => setMode('signup')}>Sign Up</button></p>
+            <p className="auth-flip-switch item" style={{ '--i': 5 }}>Don’t have an account? <button type="button" onClick={() => switchMode('signup')}>Sign Up</button></p>
           </form>
           <div className="auth-flip-panel is-info is-login-info" aria-hidden={mode !== 'login'}><img className="auth-flip-illustration item" src="/videos/Login.svg" alt="" /><h2 className="auth-flip-hello item" style={{ '--i': 1 }}>Welcome back</h2><p className="auth-flip-copy item" style={{ '--i': 2 }}>Continue your learning journey with expert-led BIM and computational design training.</p></div>
           <form className="auth-flip-panel is-form is-register-form" aria-hidden={mode !== 'signup'} onSubmit={step === 'otp' ? verify : submit}>
@@ -99,7 +152,7 @@ function AuthModal() {
             {error && <p className="auth-error item" role="alert">{error}</p>}
             <p className="auth-login-divider item" style={{ '--i': 4 }}>Other sign up options</p>
             <button className="auth-login-google item" style={{ '--i': 5 }} type="button" onClick={() => setNotice('Google sign-in will be available when authentication is connected.')}><GoogleMark /><span>Sign up with Google</span></button>
-            <p className="auth-flip-switch item" style={{ '--i': 6 }}>Already have an account? <button type="button" onClick={() => setMode('login')}>Login</button></p>
+            <p className="auth-flip-switch item" style={{ '--i': 6 }}>Already have an account? <button type="button" onClick={() => switchMode('login')}>Login</button></p>
             <p className="auth-register-legal item" style={{ '--i': 7 }}>By signing up, you agree to our <a href="/terms-and-conditions">Terms of Use</a> and <a href="/privacy-policy">Privacy Policy</a>.</p>
           </form>
           <div className="auth-flip-panel is-info is-register-info" aria-hidden={mode !== 'signup'}><img className="auth-flip-illustration item" src="/videos/Login.svg" alt="" /><h2 className="auth-flip-hello item" style={{ '--i': 1 }}>Build your future</h2><p className="auth-flip-copy item" style={{ '--i': 2 }}>Create an account to explore practical, industry-focused learning programs.</p></div>

@@ -4,6 +4,8 @@ import courseRoutes from './modules/courses/routes.js';
 import enrollmentRoutes from './modules/enrollments/routes.js';
 import liveClassRoutes from './modules/live-classes/routes.js';
 import authRoutes from './modules/auth/routes.js';
+import paymentRoutes from './modules/payments/routes.js';
+import adminAuthRoutes from './modules/admin-auth/routes.js';
 
 const app = express();
 
@@ -16,6 +18,8 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/live-classes', liveClassRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use((error, _request, response, _next) => {
   if (error.name === 'MulterError') {

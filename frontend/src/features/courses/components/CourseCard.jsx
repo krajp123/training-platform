@@ -1,13 +1,24 @@
 import React from 'react';
-import { ArrowRight, Clock3, MoreHorizontal, Play, Plus, Star } from 'lucide-react';
+import { ArrowRight, Clock3, Heart, MoreHorizontal, Play, ShoppingCart, Star } from 'lucide-react';
 
-function CourseCard({ course, onEnroll, onContinue }) {
+function CourseCard({ course, onAddToCart, onBuyNow, onContinue, isWishlisted = false, onToggleWishlist }) {
   return (
     <article className="course-card">
-      <div className="course-image-wrap">
+      <div className="course-image-wrap relative">
         <img className="course-image" src={course.image} alt="" loading="lazy" />
         <span className={`course-category ${course.color}`}>{course.category}</span>
-        <button className="course-more" aria-label={`More about ${course.title}`} onClick={onEnroll}>
+        {!course.enrolled && onToggleWishlist && (
+          <button
+            type="button"
+            className="absolute right-11 top-3 grid size-8 place-items-center rounded-full bg-white/95 text-[#7A1F2B] shadow-sm transition hover:scale-105"
+            onClick={onToggleWishlist}
+            aria-label={`${isWishlisted ? 'Remove' : 'Add'} ${course.title} ${isWishlisted ? 'from' : 'to'} wishlist`}
+            aria-pressed={isWishlisted}
+          >
+            <Heart size={17} fill={isWishlisted ? 'currentColor' : 'none'} />
+          </button>
+        )}
+        <button className="course-more" aria-label={`More about ${course.title}`} onClick={onAddToCart}>
           <MoreHorizontal size={18} />
         </button>
       </div>
@@ -43,9 +54,20 @@ function CourseCard({ course, onEnroll, onContinue }) {
               ? <strong>Enrolled</strong>
               : <><strong>₹{course.price.toLocaleString('en-IN')}</strong><del>₹{course.oldPrice.toLocaleString('en-IN')}</del></>}
           </div>
-          <button className={`course-action ${course.enrolled ? 'continue-button' : ''}`} onClick={course.enrolled ? onContinue : onEnroll}>
-            {course.enrolled ? <>Continue <ArrowRight size={14} /></> : <>Enroll <Plus size={15} /></>}
-          </button>
+          {course.enrolled ? (
+            <button className="course-action continue-button" onClick={onContinue}>
+              Continue <ArrowRight size={14} />
+            </button>
+          ) : (
+            <div className="flex flex-wrap justify-end gap-2">
+              <button className="course-action" onClick={onAddToCart}>
+                Add to cart <ShoppingCart size={14} />
+              </button>
+              <button className="course-action" onClick={onBuyNow}>
+                Buy now <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </article>

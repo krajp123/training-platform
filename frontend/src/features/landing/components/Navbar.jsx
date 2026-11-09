@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, Bell, BookOpen, Heart, HelpCircle, LogOut, Menu, MoreVertical, Settings, ShoppingCart, User, Wallet, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowUpRight, Bell, BookOpen, Heart, HelpCircle, LogOut, Menu, MoreVertical, Plus, Settings, ShoppingCart, User, Wallet, X } from 'lucide-react';
 import { getBlob } from '../../../services/api.js';
+import { clearCartData, getCart, subscribeToCart } from '../../../services/cart.js';
+
+function ShoppingCartPlus({ size = 21 }) {
+  return (
+    <span className="relative inline-flex" style={{ width: size, height: size }} aria-hidden="true">
+      <ShoppingCart size={size} strokeWidth={1.8} />
+      <Plus className="absolute -right-1 -top-1 rounded-full bg-white" size={11} strokeWidth={2.5} />
+    </span>
+  );
+}
 
 const RING_WIDTH = 6; // golden line ki thickness (px)
 const RING_CORNER = 28; // bottom corner radius (px) - className ke rounded-b-[28px] ke saath same rakhna
@@ -33,6 +44,7 @@ const ringFadeMask = {
 };
 
 function Navbar({ onAuth }) {
+  const navigate = useNavigate();
   const isHomePage = window.location.pathname === '/';
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -45,6 +57,17 @@ function Navbar({ onAuth }) {
     }
   });
   const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    try {
+      setCartCount(getCart().length);
+    } catch (error) {
+      console.error('Unable to load the shopping cart count.', error);
+    }
+
+    return subscribeToCart((cart) => setCartCount(cart.length));
+  }, []);
 
   useEffect(() => {
     const updateScrollState = () => {
@@ -60,7 +83,13 @@ function Navbar({ onAuth }) {
   }, []);
 
   useEffect(() => {
-    const updateUser = (event) => setUser(event.detail || null);
+    const updateUser = (event) => {
+      const nextUser = event.detail || null;
+      setUser(nextUser);
+      if (!nextUser) {
+        clearCartData();
+      }
+    };
     window.addEventListener('scs-auth-state', updateUser);
     return () => window.removeEventListener('scs-auth-state', updateUser);
   }, []);
@@ -103,18 +132,21 @@ function Navbar({ onAuth }) {
   const logout = () => {
     localStorage.removeItem('scs_session_token');
     localStorage.removeItem('scs_user');
+    clearCartData();
     setUser(null);
     setMenuOpen(false);
+    setProfileOpen(false);
     window.dispatchEvent(new CustomEvent('scs-auth-state', { detail: null }));
+    navigate('/');
   };
 
   const profileItems = [
     { label: "My SCS Profile", icon: User, href: '/profile' },
     { label: 'My Learning', icon: BookOpen, href: '/dashboard' },
-    { label: 'My Cart', icon: ShoppingCart, href: '/dashboard' },
-    { label: 'Wishlist', icon: Heart, href: '/dashboard' },
+    { label: 'My Cart', icon: ShoppingCart, href: '/cart' },
+    { label: 'Wishlist', icon: Heart, href: '/wishlist' },
     { label: 'Notification', icon: Bell, href: '/dashboard' },
-    { label: 'Account Setting', icon: Settings, href: '/dashboard' },
+    { label: 'Account Setting', icon: Settings, href: '/account-settings' },
     { label: 'Payment Method', icon: Wallet, href: '/dashboard' },
     { label: 'Purch history', icon: MoreVertical, href: '/dashboard' },
     { label: 'Help & Support', icon: HelpCircle, href: '/dashboard' },
@@ -179,23 +211,52 @@ function Navbar({ onAuth }) {
         <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
         <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
         <div className={`ml-auto flex items-center gap-[10px] max-[720px]:ml-0 max-[720px]:mt-3 max-[720px]:justify-start ${user ? 'absolute right-6 top-1/2 -translate-y-1/2 max-[720px]:right-[18px] max-[720px]:top-[11px] max-[720px]:translate-y-0' : ''}`}>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              <Bell size={21} strokeWidth={1.8} />
+            </button>
+            <a
+              href="/wishlist"
+              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+              aria-label="Wishlist"
+            >
+              <Heart size={21} strokeWidth={1.8} />
+            </a>
+          </div>
+          <a
+            href="/cart"
+            className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+            aria-label={`Shopping cart${cartCount ? `, ${cartCount} ${cartCount === 1 ? 'course' : 'courses'}` : ''}`}
+          >
+            <ShoppingCartPlus />
+            {cartCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid min-h-[18px] min-w-[18px] place-items-center rounded-full bg-[#E97832] px-1 text-[10px] font-bold leading-none text-white">
+                {cartCount}
+              </span>
+            )}
+          </a>
           {user ? (
             <div
               className="relative size-10 shrink-0"
               onMouseEnter={() => setProfileOpen(true)}
               onMouseLeave={() => setProfileOpen(false)}
             >
-              <button
-                type="button"
-                className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#e1e5ec] bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
-                aria-label={`Open ${user.name || 'your'} account menu`}
-                aria-expanded={profileOpen}
-                aria-controls="profile-menu"
-                onFocus={() => setProfileOpen(true)}
-                onClick={() => setProfileOpen((open) => !open)}
-              >
-                <img className="size-full object-cover" src={avatarUrl} alt="" />
-              </button>
+                <button
+                  type="button"
+                  className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#e1e5ec] bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+                  aria-label={`Open ${user.name || 'your'} account menu`}
+                  aria-expanded={profileOpen}
+                  aria-controls="profile-menu"
+                  onFocus={() => setProfileOpen(true)}
+                  onClick={() => setProfileOpen((open) => !open)}
+                >
+                  <img className="size-full object-cover" src={avatarUrl} alt="" />
+                </button>
               <div
                 className="absolute right-0 top-full z-50 w-[min(280px,calc(100vw-32px))] overflow-hidden pt-3 motion-reduce:transition-none"
                 style={{

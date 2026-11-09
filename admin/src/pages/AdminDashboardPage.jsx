@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ArrowUpRight, BookOpen, CalendarDays, Check, ChevronDown, CircleAlert,
+  ArrowUpRight, BookOpen, CalendarDays, Check, ChevronDown, CircleAlert, LogOut,
   GraduationCap, LayoutDashboard, Pencil, Plus, RefreshCw, Search, Trash2, X,
 } from 'lucide-react';
-import { apiRequest } from '../../services/api.js';
+import { apiRequest } from '../services/api.js';
 
 const emptyCourse = {
   title: '', category: 'Design', level: 'Beginner', instructor: '',
@@ -122,7 +122,7 @@ const adminTailwindStyles = `
   [&_.admin-welcome_p]:[line-height:1.6] [&_.admin-stats_article_strong]:[font-size:1.75rem] [&_.panel-heading_h2]:[font-size:var(--font-size-title)] [&_.panel-heading_h2]:[line-height:var(--line-height-heading)] [&_.empty-table]:[font-size:var(--font-size-caption)]
 `;
 
-function AdminDashboardPage() {
+function AdminDashboardPage({ onLogout }) {
   const [courses, setCourses] = useState([]);
   const [classes, setClasses] = useState([]);
   const [courseForm, setCourseForm] = useState(emptyCourse);
@@ -260,7 +260,7 @@ function AdminDashboardPage() {
       </aside>
 
       <main className="admin-main" id="dashboard">
-        <header className="admin-topbar"><div><span>Pages</span><b>/</b><strong>Admin dashboard</strong></div><a href="http://127.0.0.1:5173" target="_blank" rel="noreferrer">Open learner site <ArrowUpRight size={15} /></a></header>
+        <header className="admin-topbar"><div><span>Pages</span><b>/</b><strong>Admin dashboard</strong></div><div><a href="http://127.0.0.1:5173" target="_blank" rel="noreferrer">Open learner site <ArrowUpRight size={15} /></a><button className="refresh-button" onClick={onLogout} type="button"><LogOut size={14} /> Sign out</button></div></header>
         <div className="admin-content">
           <section className="admin-welcome"><div><div className="admin-eyebrow">PLATFORM MANAGEMENT</div><h1>Admin dashboard</h1><p>Manage your learning catalog and upcoming classes.</p></div><button className="refresh-button" onClick={refresh}><RefreshCw size={15} /> Refresh data</button></section>
 

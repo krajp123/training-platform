@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2,
+  ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2, Heart,
   MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, Zap,
 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer.jsx';
+import { addToCart, getCart, subscribeToCart } from '../../../services/cart.js';
+import { getWishlist, subscribeToWishlist, toggleWishlist } from '../../../services/wishlist.js';
 
 const bimPrograms = [
   { duration: '1 month', hours: '20 hours', price: '₹4,999', rating: '4.8', description: 'Build practical BIM foundations through guided exercises.' },
@@ -213,11 +216,53 @@ const homeTailwindStyles = `
 `;
 
 function HomePage() {
+  const navigate = useNavigate();
   const [activeGuidanceSlide, setActiveGuidanceSlide] = useState(0);
   const [pausedCourseVideos, setPausedCourseVideos] = useState({});
+  const [cartCourseIds, setCartCourseIds] = useState([]);
+  const [wishlistCourseIds, setWishlistCourseIds] = useState([]);
+  const [cartError, setCartError] = useState('');
   const partnerTrackRef = useRef(null);
   const courseVideoRefs = useRef([]);
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const updateCart = (cart) => setCartCourseIds(cart.map((item) => item.id));
+    try {
+      updateCart(getCart());
+    } catch (error) {
+      setCartError(error.message);
+    }
+    return subscribeToCart(updateCart);
+  }, []);
+
+  useEffect(() => {
+    const updateWishlist = (wishlist) => setWishlistCourseIds(wishlist.map((item) => item.id));
+    try {
+      updateWishlist(getWishlist());
+    } catch (error) {
+      setCartError(error.message);
+    }
+    return subscribeToWishlist(updateWishlist);
+  }, []);
+
+  const addProgramToCart = (course) => {
+    try {
+      addToCart(course);
+      return true;
+    } catch (error) {
+      window.alert(error.message);
+      return false;
+    }
+  };
+
+  const toggleProgramWishlist = (course) => {
+    try {
+      toggleWishlist(course);
+    } catch (error) {
+      window.alert(error.message);
+    }
+  };
 
   useEffect(() => {
     let timer;
@@ -381,7 +426,22 @@ function HomePage() {
           </div>
 
           <div className="mx-auto grid w-full max-w-[1180px] grid-cols-3 gap-6 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 max-[640px]:gap-5">
+            {cartError && <p className="col-span-full rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError}</p>}
             {bimPrograms.map(({ duration, hours, price, rating, description }, index) => {
+              const cartCourse = {
+                cartId: `bim-${index}`,
+                title: 'BIM Professional Program',
+                price,
+                image: bimProgramImage,
+                duration,
+                hours,
+                category: 'BIM',
+                level: ['Foundation', 'Career Track', 'Advanced'][index],
+                description,
+                instructor: 'SCS Academy',
+                rating,
+                badge: 'Bestseller',
+              };
               const courseCard = (
                 <motion.article
                   key={duration}
@@ -433,6 +493,15 @@ function HomePage() {
                   ) : (
                     <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={bimProgramImage} alt="" loading="lazy" />
                   )}
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full border border-white/60 bg-white/95 text-[#7A1F2B] shadow-md transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    onClick={() => toggleProgramWishlist(cartCourse)}
+                    aria-label={`${wishlistCourseIds.includes(cartCourse.cartId) ? 'Remove' : 'Add'} BIM Professional Program ${['Foundation', 'Career Track', 'Advanced'][index]} ${wishlistCourseIds.includes(cartCourse.cartId) ? 'from' : 'to'} wishlist`}
+                    aria-pressed={wishlistCourseIds.includes(cartCourse.cartId)}
+                  >
+                    <Heart size={18} fill={wishlistCourseIds.includes(cartCourse.cartId) ? 'currentColor' : 'none'} />
+                  </button>
                   {index === 2 && <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />}
                 </div>
                 <div className="p-6">
@@ -458,13 +527,22 @@ function HomePage() {
                     <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{hours}</span></div>
                     <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{duration}</span></div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <span className="mt-1 block text-xl font-bold text-[#24232d]">{price}</span>
                     </div>
-                    <a className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[#d9d5e5] bg-white px-4 text-sm font-bold !text-black transition-colors hover:bg-[#f3f2f7]" href="/dashboard">
-                      Enroll now <ArrowUpRight size={14} />
-                    </a>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#E97832] bg-white px-3 text-xs font-bold !text-[#7A1F2B] transition-colors hover:bg-[#fff3eb]"
+                        onClick={() => cartCourseIds.includes(cartCourse.cartId) ? navigate('/cart') : addProgramToCart(cartCourse)}
+                      >
+                        {cartCourseIds.includes(cartCourse.cartId) ? 'Go to cart' : 'Add to cart'}
+                      </button>
+                      <button type="button" className="inline-flex min-h-9 items-center justify-center rounded-md bg-[#7A1F2B] px-3 text-xs font-bold !text-white transition-colors hover:bg-[#641a25]" onClick={() => { if (addProgramToCart(cartCourse)) navigate('/checkout'); }}>
+                        Buy now
+                      </button>
+                    </div>
                   </div>
                 </div>
                 </motion.article>

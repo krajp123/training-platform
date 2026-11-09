@@ -159,7 +159,7 @@ function TermsAndConditionsPage() {
             <div className="mb-12 border-l-4 border-[#2347a8] bg-[#e9eefa] px-5 py-4">
               <h2 className="m-0 text-base font-semibold text-[#1b2233]">Please note: this is a demo</h2>
               <p className="mb-0 mt-1.5 text-[15px] leading-7 text-[#3c4558]">
-                SCS Academy is currently a demonstration platform. Sign-in and sign-up forms do not create accounts, and checkout and payment features are not connected. Course enrollment is temporary demo functionality. Do not rely on the demo as a permanent learner record or submit real passwords or payment details.
+                SCS Academy is a developing platform. Account registration, OTP sign-in, profile settings, and password sign-in are functional. Course enrollment remains demo functionality, and checkout/payment processing is not complete. Do not submit payment-card or bank details.
               </p>
             </div>
 
@@ -173,8 +173,8 @@ function TermsAndConditionsPage() {
             </TermsSection>
 
             <TermsSection id="accounts" number="3" title="Accounts & eligibility">
-              <p>The sign-in and join forms currently shown on the website are visual demonstrations only. They do not create or authenticate an account. Do not enter a real password or other sensitive information into these forms.</p>
-              <p>If account features are introduced later, additional terms may apply. You will be responsible for providing accurate information and protecting your account credentials once real accounts are available.</p>
+              <p>You may create and use an account through OTP verification. Account settings let you update profile information, set a password, verify a phone number, and optionally enable password-plus-OTP two-factor sign-in. You are responsible for providing accurate information and protecting your account credentials.</p>
+              <p>Do not share your password or one-time verification codes. Contact the platform if you believe your account has been accessed without authorization.</p>
             </TermsSection>
 
             <TermsSection id="courses" number="4" title="Courses & enrollment">

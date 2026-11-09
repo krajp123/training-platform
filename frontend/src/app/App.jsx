@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import React, { useEffect, useLayoutEffect } from 'react';
+import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
 import HomePage from '../features/landing/pages/HomePage.jsx';
 import CoursesPage from '../features/landing/pages/CoursesPage.jsx';
 import PrivacyPolicyPage from '../features/landing/pages/PrivacyPolicyPage.jsx';
@@ -8,6 +8,20 @@ import DashboardPage from '../features/learner/pages/DashboardPage.jsx';
 import BimPage from '../features/landing/pages/BimPage.jsx';
 import AuthModal from '../features/landing/components/AuthModal.jsx';
 import ScsProfilePage from '../features/landing/pages/ScsProfilePage.jsx';
+import CartPage from '../features/landing/pages/CartPage.jsx';
+import CheckoutPage from '../features/landing/pages/CheckoutPage.jsx';
+import WishlistPage from '../features/landing/pages/WishlistPage.jsx';
+import AccountSettingsPage from '../features/landing/pages/AccountSettingsPage.jsx';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 function PlaceholderPage({ title, notFound = false }) {
   return (
@@ -38,11 +52,16 @@ function AuthEntryPage({ mode }) {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthModal />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<ScsProfilePage />} />
+        <Route path="/account-settings" element={<AccountSettingsPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/bim" element={<BimPage />} />
         <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />

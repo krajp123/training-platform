@@ -15,10 +15,10 @@ const sections = [
 ];
 
 const quickFacts = [
-  ['Accounts', 'Sign-in and join forms are illustrative only. They are not connected to any authentication service, so nothing you type into them, including your email address or password, is sent to or stored by us.'],
+  ['Accounts', 'Account sign-in and profile settings are functional. Account identifiers, names, verified phone numbers, profile details, password hashes, OTP challenges, and session records are processed by the application and stored in MongoDB where applicable. OTPs are sent through the configured email or SMS provider.'],
   ['Payments', 'None. The demo has no checkout, billing, or payment processing, and we do not ask for card or bank details anywhere on the site.'],
   ['Enrollment', 'Only a course ID is sent to our API when you use the enrollment demo. It is held in server memory, is not linked to any account, and is cleared whenever the server restarts.'],
-  ['Cookies & storage', 'The application does not intentionally set cookies or use local or session storage. Your browser may still keep standard technical data on its own.'],
+  ['Cookies & storage', 'The application stores the sign-in token and basic user details in your browser local storage. Course cart and wishlist data are also stored locally on your device.'],
   ['Selling data', 'We do not sell personal information, and the demo has no advertising or analytics service that would receive it.'],
   ['Third-party resources', 'Google Fonts and Unsplash images load directly from their own servers, which may receive your IP address and browser details under their own privacy policies.'],
 ];
@@ -158,41 +158,42 @@ function PrivacyPolicyPage() {
             <div className="mb-12 border-l-4 border-[#2347a8] bg-[#e9eefa] px-5 py-4">
               <h2 className="m-0 text-base font-semibold text-[#1b2233]">A note about this demo</h2>
               <p className="mb-0 mt-1.5 text-[15px] leading-7 text-[#3c4558]">
-                SCS Academy is currently a demonstration platform. The sign-in and sign-up forms are for illustration only: they do not create accounts, and the details you type into them are not sent to us. Course enrollment is also a demo and stores only a course ID, temporarily, in server memory, where it is not tied to any person. Because nothing here is built to protect real credentials, please do not enter real passwords, payment details, or other sensitive personal information anywhere on the site.
+                SCS Academy is a developing platform. Account registration, OTP sign-in, profile settings, and password sign-in are functional and process the information needed for those features. Course catalog and enrollment data remain demo functionality, and checkout is not a completed payment service. Do not submit payment-card details through the site.
               </p>
             </div>
 
             <PolicySection id="information" number="1" title="Information we handle">
-              <p>We aim to handle only the minimum information needed to show and operate the learning experience, and we have deliberately kept the demo simple. In the current demo, the information involved is limited to the following:</p>
+              <p>We handle information needed to operate account features and the learning experience. This includes:</p>
               <ul className="my-0 list-disc space-y-3 pl-5 marker:text-[#8b95ab]">
-                <li><strong>Course selections:</strong> if you use the enrollment demo, the ID of the course you select is sent to our API so the demo can respond to your choice. The demo keeps this enrollment state only in server memory. It is not linked to a name, email address, or account, it is not written to a permanent database, and it is cleared whenever the server restarts.</li>
-                <li><strong>Sign-in form entries:</strong> the visible sign-in and join forms are illustrative only. They are not connected to an authentication service, and they do not submit your name, email address, or password to our application. Whatever you type into those fields stays in your own browser and is not received or stored by us.</li>
+                <li><strong>Account and profile information:</strong> account identifier, name, optional verified phone number, bio, social links, and uploaded profile photo are processed for account and profile features. User and profile records are stored in MongoDB.</li>
+                <li><strong>Authentication and security:</strong> OTP challenges are stored temporarily with an expiry, session token hashes are stored with an expiry, and passwords are stored as derived hashes rather than plaintext. Email and SMS delivery uses the configured SMTP and Twilio providers.</li>
+                <li><strong>Course selections:</strong> cart and wishlist contents are stored in your browser's local storage. Enrollment and catalog data are currently demo functionality and may be held in server memory.</li>
                 <li><strong>Technical information:</strong> whenever you load any website, your browser and the hosting or network providers involved may process standard connection details, such as your IP address, device and browser information, the pages you request, and timestamps. This processing is a normal part of delivering a website and helps keep the service reliable and protected against abuse.</li>
               </ul>
-              <p>Please do not submit sensitive information through any demo interface. The demo does not currently provide a functioning learner account, checkout, or payment processing, so there is no feature on the site that needs your financial, identity, or login details.</p>
+              <p>Keep your account credentials private. Checkout and payment processing are not currently complete; do not enter payment-card or bank details.</p>
             </PolicySection>
 
             <PolicySection id="use" number="2" title="How information is used">
               <p>Information handled by the current demo is used for a small number of practical purposes: to display the site, to provide its course and learning interfaces, to respond when you select a course in the enrollment demo, and to support the basic operation and security of the website. We do not use demo enrollment IDs to identify, track, or profile individual learners, and we do not combine them with any other data to build a picture of who you are.</p>
-              <p>If we introduce real accounts, communications, or paid services in the future, this policy will be updated before those features are offered, so that you can see exactly what data would be involved, why it would be needed, and how you could control it.</p>
+              <p>Account communications may be delivered through configured email and SMS providers. You can update profile information in account settings; account access and stored records are managed by the platform.</p>
             </PolicySection>
 
             <PolicySection id="sharing" number="3" title="Sharing & third parties">
               <p>We do not sell personal information. The website does load some resources from third parties, including fonts from Google Fonts and images hosted by Unsplash. When your browser requests those resources, the provider may receive technical connection information, such as your IP address, browser details, and the page that requested the resource. That information is handled by the provider under its own privacy policy, which we do not control.</p>
-              <p>Our hosting and infrastructure providers may also process technical data as needed to deliver the site and keep it secure. We do not currently have an integrated advertising, analytics, account, or payment service in this demo, so no such third party receives information through the application itself.</p>
+              <p>Our hosting and infrastructure providers may process technical data to deliver the site. SMTP and Twilio receive the contact destination and message content needed to deliver verification codes. The application does not currently process payments.</p>
             </PolicySection>
 
             <PolicySection id="cookies" number="4" title="Cookies & browser storage">
-              <p>The current application code does not intentionally set cookies, and it does not use browser local storage or session storage for tracking or to hold account data. Even so, your browser may still store standard technical information, such as cached files, and infrastructure or third-party resources, like the fonts and images mentioned above, may operate under their own practices.</p><p>You can review, block, or delete cookies and other site data at any time through your browser settings. Doing so will not affect your ability to browse the public pages of this demo.</p>
+              <p>The application uses browser local storage for the sign-in token, basic user details, course cart, and wishlist. Clearing local storage signs you out and removes the locally saved cart and wishlist. Your browser may also store cached files, and third-party resources may operate under their own practices.</p><p>You can review or delete site data through your browser settings. Clearing it may affect account sign-in and locally saved course selections.</p>
             </PolicySection>
 
             <PolicySection id="security" number="5" title="Security & retention">
-              <p>We take reasonable steps appropriate to this demo to avoid unnecessary data handling, and the simplest protection is that we collect very little in the first place. However, no method of internet transmission or electronic storage can be guaranteed to be completely secure. The demo is not designed for confidential information, and its in-memory enrollment state is temporary: it exists only while the server is running and is not a permanent learner record.</p>
+              <p>Passwords are stored as derived hashes and session tokens are stored as hashes. No method of internet transmission or electronic storage can be guaranteed completely secure. Course catalog and enrollment data remain demo functionality and are not a permanent learner record.</p>
               <p>Technical logs may be retained by hosting or network providers according to their own operational and security needs. We do not control those providers’ retention schedules, so how long such logs are kept depends on their policies rather than on this site.</p>
             </PolicySection>
 
             <PolicySection id="your-choices" number="6" title="Your choices">
-              <p>You can browse the public pages without creating an account, and you are not required to use the enrollment demo. Please do not enter real credentials in the demo sign-in or join forms. Through your browser settings, you may also control cookies, stored site data, and whether external resources such as fonts and images are loaded, for example by using content-blocking features or extensions.</p><p>If you have a question or concern about information handled in connection with this site, you can contact us using the website contact options.</p>
+              <p>You can browse public pages without an account. You may update profile details in account settings or clear local browser storage to remove locally saved course selections and sign-in state. Through your browser settings, you may also control stored site data and external resources.</p><p>If you have a question or concern about information handled in connection with this site, you can contact us using the website contact options.</p>
             </PolicySection>
 
             <PolicySection id="children" number="7" title="Children’s privacy">
