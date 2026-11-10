@@ -29,22 +29,20 @@ function AdminLoginPage({ message, onLogin }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6f8] px-4 py-6 font-sans text-[#292a32] antialiased sm:px-8 sm:py-10">
       <section className="grid w-full max-w-[1120px] grid-cols-1 overflow-hidden rounded-2xl border border-[#e8ebef] bg-white shadow-[0_24px_70px_rgba(30,41,59,.12)] md:min-h-[min(620px,calc(100vh-64px))] md:grid-cols-2" aria-label="Admin sign in">
-        <div className="flex flex-col items-center justify-center bg-[#f8fafc] px-7 py-8 sm:px-12 md:px-10">
-          <div className="mb-1 text-center">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[1.8px] text-[#718096]">SCS Academy</p>
-            <h2 className="font-[Manrope,sans-serif] text-xl font-semibold tracking-[-.4px] text-[#263448] sm:text-[22px]">Your learning hub</h2>
-          </div>
+        <div className="flex flex-col items-center justify-center border-b border-[#e8ebef] bg-white px-7 py-8 sm:px-12 md:border-b-0 md:border-r md:px-10">
+          <img className="h-[90px] w-[190px] object-contain" src="/academy-logo-cropped.png" alt="SCS Academy" />
           <div className="my-2 flex w-full items-center justify-center">
-            <video
-              aria-label="Secure sign-in animation"
-              autoPlay
-              className="aspect-square w-full max-w-[260px] object-contain sm:max-w-[320px] md:max-w-[380px]"
-              loop
-              muted
-              playsInline
-            >
-              <source src="/secure-login.mp4" type="video/mp4" />
-            </video>
+            <div className="relative aspect-square w-full max-w-[260px] bg-white before:absolute before:inset-y-0 before:right-0 before:z-10 before:w-1 before:bg-white after:absolute after:inset-x-0 after:bottom-0 after:z-10 after:h-1 after:bg-white sm:max-w-[320px] md:max-w-[380px]">
+              <video
+                aria-label="Secure sign-in animation"
+                autoPlay
+                className="h-full w-full object-contain"
+                muted
+                playsInline
+              >
+                <source src="/secure-login.mp4" type="video/mp4" />
+              </video>
+            </div>
           </div>
           <p className="max-w-[300px] text-center text-sm leading-6 text-[#748092]">A secure place to manage learning and grow together.</p>
         </div>
@@ -99,12 +97,12 @@ function AdminLoginPage({ message, onLogin }) {
                   />
                 </div>
               </div>
-              <button className="mt-1 flex h-[50px] items-center justify-center rounded-lg border-0 bg-[#397bd5] font-sans text-sm font-semibold text-white shadow-[0_5px_12px_rgba(57,123,213,.2)] transition hover:bg-[#2f6cc0] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#397bd5]/30 disabled:cursor-wait disabled:opacity-70" disabled={submitting} type="submit">
-                  {submitting ? 'Signing in…' : 'Sign in'}
+              <button className="mt-1 flex h-[50px] items-center justify-center rounded-lg border-0 bg-[#762f3b] font-sans text-sm font-semibold text-white shadow-[0_5px_12px_rgba(118,47,59,.2)] transition hover:bg-[#632630] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#b99a55]/50 disabled:cursor-wait disabled:opacity-70" disabled={submitting} type="submit">
+                  {submitting ? 'Logging in…' : 'Login'}
                 </button>
             </form>
             <div className="mt-7 flex items-center justify-center gap-2 border-t border-[#edf0f3] pt-5 text-xs text-[#77808e]">
-              <ShieldCheck className="text-[#397bd5]" size={15} />
+              <ShieldCheck className="text-[#a18443]" size={15} />
               <span>Secure access for authorized administrators</span>
             </div>
           </div>

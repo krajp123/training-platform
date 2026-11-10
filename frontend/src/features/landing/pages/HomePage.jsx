@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer.jsx';
 import { addToCart, getCart, subscribeToCart } from '../../../services/cart.js';
 import { getWishlist, subscribeToWishlist, toggleWishlist } from '../../../services/wishlist.js';
+import { getJson } from '../../../services/api.js';
 
 const bimPrograms = [
   { duration: '1 month', hours: '20 hours', price: '₹4,999', rating: '4.8', description: 'Build practical BIM foundations through guided exercises.' },
@@ -222,6 +223,9 @@ function HomePage() {
   const [cartCourseIds, setCartCourseIds] = useState([]);
   const [wishlistCourseIds, setWishlistCourseIds] = useState([]);
   const [cartError, setCartError] = useState('');
+  const [publicContent, setPublicContent] = useState({ banners: [], announcements: [], promotions: [] });
+  const [contentError, setContentError] = useState('');
+  const [catalogCourses, setCatalogCourses] = useState([]);
   const partnerTrackRef = useRef(null);
   const courseVideoRefs = useRef([]);
   const shouldReduceMotion = useReducedMotion();
@@ -244,6 +248,24 @@ function HomePage() {
       setCartError(error.message);
     }
     return subscribeToWishlist(updateWishlist);
+  }, []);
+
+  useEffect(() => {
+    getJson('/api/platform/content')
+      .then(setPublicContent)
+      .catch((error) => setContentError(error.message));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getJson('/api/courses')
+      .then((courses) => {
+        if (active) setCatalogCourses(courses);
+      })
+      .catch((error) => {
+        if (active) setContentError(error.message);
+      });
+    return () => { active = false; };
   }, []);
 
   const addProgramToCart = (course) => {
@@ -314,6 +336,27 @@ function HomePage() {
   return (
     <div className={`marketing-page ${homeTailwindStyles}`}>
       <Navbar />
+
+      {(contentError || publicContent.banners.length > 0 || publicContent.announcements.length > 0 || publicContent.promotions.length > 0) && (
+        <section className="space-y-2 bg-[#f7f5fb] px-5 py-3 sm:px-8" aria-label="Academy updates">
+          {contentError && <p className="mx-auto my-0 max-w-6xl text-sm text-red-700" role="status">Academy updates are temporarily unavailable.</p>}
+          {publicContent.banners.map((banner) => (
+            <article className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3" key={banner.id}>
+              <div><h2 className="m-0 text-sm font-bold text-slate-900">{banner.title}</h2><p className="mb-0 mt-1 text-sm text-slate-600">{banner.body}</p></div>
+              {banner.link && <a className="shrink-0 rounded-lg bg-[#7A1F2B] px-4 py-2 text-xs font-bold text-white no-underline" href={banner.link}>Learn more</a>}
+            </article>
+          ))}
+          {publicContent.announcements.map((announcement) => (
+            <article className="mx-auto max-w-6xl rounded-lg border border-violet-100 bg-white px-4 py-2 text-sm text-slate-700" key={announcement.id}><strong>{announcement.title}</strong><span className="ml-2">{announcement.body}</span></article>
+          ))}
+          {publicContent.promotions.map((promotion) => (
+            <article className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" key={promotion.id}>
+              <div><p className="m-0 text-[10px] font-bold uppercase tracking-wider text-amber-800">Limited-time promotion</p><h2 className="mb-0 mt-1 text-sm font-bold text-slate-900">{promotion.title}</h2><p className="mb-0 mt-1 text-sm text-slate-700">{promotion.bannerText || promotion.courseTitle}</p></div>
+              <a className="shrink-0 rounded-lg bg-[#7A1F2B] px-4 py-2 text-xs font-bold text-white no-underline" href={`/learn/catalog-${promotion.courseId}`}>Explore course</a>
+            </article>
+          ))}
+        </section>
+      )}
 
       <main>
         <section className="landing-hero">
@@ -428,19 +471,22 @@ function HomePage() {
           <div className="mx-auto grid w-full max-w-[1180px] grid-cols-3 gap-6 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 max-[640px]:gap-5">
             {cartError && <p className="col-span-full rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError}</p>}
             {bimPrograms.map(({ duration, hours, price, rating, description }, index) => {
+              const level = ['Foundation', 'Career Track', 'Advanced'][index];
+              const catalogCourse = catalogCourses.find((course) => course.category?.toLowerCase() === 'bim' && course.level === level);
               const cartCourse = {
-                cartId: `bim-${index}`,
-                title: 'BIM Professional Program',
-                price,
-                image: bimProgramImage,
-                duration,
-                hours,
-                category: 'BIM',
-                level: ['Foundation', 'Career Track', 'Advanced'][index],
+                cartId: catalogCourse ? `catalog-${catalogCourse.id}` : `bim-${index}`,
+                title: catalogCourse?.title || 'BIM Professional Program',
+                price: catalogCourse ? Number(catalogCourse.price) : price,
+                image: catalogCourse?.image || bimProgramImage,
+                duration: catalogCourse?.duration || duration,
+                hours: catalogCourse ? `${catalogCourse.lessons} lessons` : hours,
+                category: catalogCourse?.category || 'BIM',
+                level: catalogCourse?.level || level,
                 description,
                 instructor: 'SCS Academy',
                 rating,
                 badge: 'Bestseller',
+                purchasable: Boolean(catalogCourse),
               };
               const courseCard = (
                 <motion.article
@@ -529,18 +575,19 @@ function HomePage() {
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <span className="mt-1 block text-xl font-bold text-[#24232d]">{price}</span>
+                      <span className="mt-1 block text-xl font-bold text-[#24232d]">₹{Number(cartCourse.price).toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#E97832] bg-white px-3 text-xs font-bold !text-[#7A1F2B] transition-colors hover:bg-[#fff3eb]"
+                        disabled={!cartCourse.purchasable}
                         onClick={() => cartCourseIds.includes(cartCourse.cartId) ? navigate('/cart') : addProgramToCart(cartCourse)}
                       >
-                        {cartCourseIds.includes(cartCourse.cartId) ? 'Go to cart' : 'Add to cart'}
+                        {cartCourse.purchasable ? (cartCourseIds.includes(cartCourse.cartId) ? 'Go to cart' : 'Add to cart') : 'Enrollment opens soon'}
                       </button>
-                      <button type="button" className="inline-flex min-h-9 items-center justify-center rounded-md bg-[#7A1F2B] px-3 text-xs font-bold !text-white transition-colors hover:bg-[#641a25]" onClick={() => { if (addProgramToCart(cartCourse)) navigate('/checkout'); }}>
-                        Buy now
+                      <button type="button" disabled={!cartCourse.purchasable} className="inline-flex min-h-9 items-center justify-center rounded-md bg-[#7A1F2B] px-3 text-xs font-bold !text-white transition-colors hover:bg-[#641a25] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (addProgramToCart(cartCourse)) navigate('/checkout'); }}>
+                        {cartCourse.purchasable ? 'Buy now' : 'Not available'}
                       </button>
                     </div>
                   </div>

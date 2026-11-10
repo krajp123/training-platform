@@ -2,7 +2,7 @@ export function validateCourse(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return 'Request body must be a JSON object.';
   }
-  const requiredText = ['title', 'category', 'level', 'instructor', 'duration'];
+  const requiredText = ['title', 'category', 'level', 'instructor', 'duration', 'hours'];
   for (const field of requiredText) {
     if (typeof input[field] !== 'string' || !input[field].trim()) {
       return `${field} is required.`;
@@ -13,20 +13,8 @@ export function validateCourse(input) {
       return `${field} must be a non-negative number.`;
     }
   }
-  if (input.level !== 'Beginner' && input.level !== 'Intermediate') {
-    return 'level must be Beginner or Intermediate.';
-  }
-  return null;
-}
-
-export function validateLiveClass(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    return 'Request body must be a JSON object.';
-  }
-  for (const field of ['title', 'course', 'instructor', 'time', 'date']) {
-    if (typeof input[field] !== 'string' || !input[field].trim()) {
-      return `${field} is required.`;
-    }
+  if (!['Beginner', 'Intermediate', 'Advanced', 'Foundation', 'Career Track'].includes(input.level)) {
+    return 'level must be Beginner, Intermediate, Advanced, Foundation, or Career Track.';
   }
   return null;
 }

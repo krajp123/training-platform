@@ -11,6 +11,7 @@ import {
   requestTwoFactorChange,
   saveUserAvatar,
   saveUserResume,
+  setEmailMarketingConsent,
   updateUserProfile,
   verifyOtp,
   verifyPhoneNumber,
@@ -62,6 +63,16 @@ export async function saveProfile(request, response, next) {
     const user = await authenticatedUser(request);
     const profile = await updateUserProfile(user._id, request.body.section, request.body.data);
     return response.json({ profile });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function updateEmailMarketingConsent(request, response, next) {
+  try {
+    const user = await authenticatedUser(request);
+    const emailMarketingConsent = await setEmailMarketingConsent(user._id, request.body?.emailMarketingConsent);
+    return response.json({ emailMarketingConsent });
   } catch (error) {
     return next(error);
   }

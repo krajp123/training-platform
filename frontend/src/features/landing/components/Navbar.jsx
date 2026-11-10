@@ -43,12 +43,13 @@ const ringFadeMask = {
   maskRepeat: 'no-repeat',
 };
 
-function Navbar({ onAuth }) {
+function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disableScrollShift = false }) {
   const navigate = useNavigate();
-  const isHomePage = window.location.pathname === '/';
+  const isHomePage = isHomePageOverride ?? window.location.pathname === '/';
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 32);
+  const showScrolledStyle = isScrolled && !disableScrollShift;
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('scs_user') || 'null');
@@ -148,8 +149,8 @@ function Navbar({ onAuth }) {
     { label: 'Notification', icon: Bell, href: '/dashboard' },
     { label: 'Account Setting', icon: Settings, href: '/account-settings' },
     { label: 'Payment Method', icon: Wallet, href: '/dashboard' },
-    { label: 'Purch history', icon: MoreVertical, href: '/dashboard' },
-    { label: 'Help & Support', icon: HelpCircle, href: '/dashboard' },
+    { label: 'Purch history', icon: MoreVertical, href: '/orders' },
+    { label: 'Help & Support', icon: HelpCircle, href: '/support' },
   ];
 
   const avatarUrl = profileAvatarUrl || (user
@@ -180,16 +181,16 @@ function Navbar({ onAuth }) {
 
   return (
     <header className={`${isHomePage ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 h-[96px] px-4 pt-6 max-[720px]:h-[78px] max-[720px]:px-2 max-[720px]:pt-4`}>
-      <div className={`relative mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between gap-[clamp(18px,3vw,40px)] border bg-white px-[clamp(18px,2.4vw,36px)] text-[#202330] transition-[transform,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[720px]:h-[62px] max-[720px]:px-[18px] ${isScrolled ? '-translate-y-6 max-[720px]:-translate-y-4 rounded-t-none rounded-b-[28px] border-transparent shadow-[0_8px_24px_#15162918]' : 'translate-y-0 rounded-2xl border-[#e7e9ef] shadow-[0_8px_30px_#15162920]'}`}>
+      <div className={`relative mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between gap-[clamp(18px,3vw,40px)] border bg-white px-[clamp(18px,2.4vw,36px)] text-[#202330] transition-[translate,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[720px]:h-[62px] max-[720px]:px-[18px] ${showScrolledStyle ? '-translate-y-6 max-[720px]:-translate-y-4 rounded-t-none rounded-b-[28px] border-transparent shadow-[0_8px_24px_#15162918]' : 'translate-y-0 rounded-2xl border-[#e7e9ef] shadow-[0_8px_30px_#15162920]'}`}>
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-500 motion-reduce:transition-none ${isScrolled ? 'opacity-100' : 'opacity-0'}`}
+        className={`pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-500 motion-reduce:transition-none ${showScrolledStyle ? 'opacity-100' : 'opacity-0'}`}
         style={ringFadeMask}
       >
         <div className="absolute inset-0 rounded-[inherit]" style={ringStyle} />
       </div>
       <a className="relative z-10 inline-flex h-[60px] w-[140px] shrink-0 items-center overflow-hidden no-underline max-[720px]:h-[52px] max-[720px]:w-[120px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
-        <img className="h-full w-full object-cover object-center" src="/images/logo.png" alt="SCS Academy" />
+        <img className="h-full w-full object-contain object-center" src={logoSrc} alt="SCS Academy" />
       </a>
       <button
         className="relative z-10 hidden size-[35px] place-items-center rounded-md border border-[#dfe3ea] bg-white text-[#24384d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[720px]:grid"

@@ -1,14 +1,13 @@
 import React from 'react';
 import {
   ArrowDownRight, ArrowRight, BookOpen, Code2, Compass, FlaskConical,
-  GraduationCap, Headphones, LayoutDashboard, MoreHorizontal, Sparkles, Video,
+  GraduationCap, Headphones, LayoutDashboard, MoreHorizontal, Sparkles,
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Overview', icon: LayoutDashboard },
   { label: 'Explore courses', icon: Compass },
   { label: 'My learning', icon: BookOpen },
-  { label: 'Live classes', icon: Video },
 ];
 
 const categories = [
@@ -23,16 +22,11 @@ const categories = [
 function DashboardSidebar({
   activeNav = 'Overview',
   activeCategory = 'All courses',
-  classes = [],
   menuOpen = false,
   onNavSelect = () => {},
   onCategorySelect = () => {},
   onNotify = () => {},
 }) {
-  const liveClassCount = Array.isArray(classes)
-    ? classes.filter((item) => item?.date === 'Today').length
-    : 0;
-
   return (
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <a className="brand" href="/" aria-label="Skillpath home">
@@ -49,7 +43,6 @@ function DashboardSidebar({
             className={`nav-item ${activeNav === label ? 'active' : ''}`}
           >
             <Icon size={18} strokeWidth={1.8} /><span>{label}</span>
-            {label === 'Live classes' && <span className="nav-count">{liveClassCount}</span>}
           </button>
         ))}
       </nav>

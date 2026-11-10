@@ -1,1 +1,14 @@
 @import "tailwindcss";
+@source "../../frontend/src";
+
+@theme {
+  --color-violet-50: #fbf5f0;
+  --color-violet-100: #f3e5e3;
+  --color-violet-200: #e6c6c1;
+  --color-violet-300: #d7a278;
+  --color-violet-500: #a52a32;
+  --color-violet-600: #7a1f2b;
+  --color-violet-700: #681923;
+  --color-violet-800: #57151e;
+  --color-violet-900: #421018;
+}

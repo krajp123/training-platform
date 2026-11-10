@@ -32,8 +32,8 @@ backend/
     modules/
       courses/            Course routes and request handlers
       enrollments/        Enrollment routes and request handlers
-      live-classes/       Live-class routes and request handlers
-    data/                 Demo seed data and in-memory store
+      admin-workspace/    Admin analytics, learner, enrollment, and audit APIs
+    data/                 Demo seed data and MongoDB-backed catalog store
     utils/                Shared validation
 admin/
   index.html
@@ -77,6 +77,9 @@ MONGODB_DB=skillpath
 OTP_SECRET=replace-with-a-long-random-secret
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=replace-with-a-long-unique-password
+ADMIN_ROLE=owner
+RAZORPAY_KEY_ID=...
+RAZORPAY_KEY_SECRET=...
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -104,15 +107,18 @@ This builds both React applications. The backend is a Node.js service and does n
 
 - `GET /api/health`
 - `POST /api/admin-auth/login`, `GET /api/admin-auth/me`, `POST /api/admin-auth/logout`
-- `GET /api/courses`, `POST /api/courses`
+- `GET /api/admin/overview`, `GET /api/admin/audit-log` (admin)
+- `GET /api/admin/learners`, `PATCH /api/admin/learners/:id/status` (admin)
+- `GET /api/admin/enrollments`, `PATCH /api/admin/enrollments/:id/progress` (admin)
+- `GET /api/courses`, `GET /api/courses/admin` (admin), `POST /api/courses`
 - `PATCH /api/courses/:id`, `DELETE /api/courses/:id`
-- `GET /api/live-classes`, `POST /api/live-classes`, `DELETE /api/live-classes/:id`
-- `POST /api/enrollments`
+- `POST /api/enrollments` (authenticated learner)
 - `POST /api/auth/request-otp`
 - `POST /api/auth/verify-otp`
 - `POST /api/auth/password-login`
 - `GET /api/auth/profile` (authenticated)
 - `PATCH /api/auth/profile` (authenticated; saves a profile section)
+- `PATCH /api/auth/profile/notifications` (authenticated; manages optional email-campaign consent)
 - `PATCH /api/auth/profile/security/password` (authenticated; creates or changes a password)
 - `POST /api/auth/profile/phone/request-otp`, `POST /api/auth/profile/phone/verify-otp` (authenticated; verifies an additional phone number)
 - `POST /api/auth/profile/security/two-factor/request-otp`, `POST /api/auth/profile/security/two-factor/verify-otp` (authenticated; verifies and changes 2FA setting)
@@ -122,7 +128,19 @@ This builds both React applications. The backend is a Node.js service and does n
 - `POST /api/auth/profile/avatar` (authenticated multipart upload, field `avatar`; JPEG/PNG/WebP, 2 MB max)
 - `DELETE /api/auth/profile/avatar` (authenticated; removes the profile photo)
 - `POST /api/auth/profile/resume` (authenticated multipart upload, field `resume`)
+- `GET /api/platform/content`, `GET /api/platform/courses/:courseId/content`, `GET /api/platform/courses/:courseId/reviews`
+- `POST /api/platform/coupons/validate`
+- `POST /api/support/tickets`, `POST /api/support/reviews` (authenticated learner)
+- `POST /api/payments/create-order`, `POST /api/payments/verify-signature` (authenticated learner)
+- `GET /api/payments/my-orders`, `GET /api/payments/my-orders/:id/receipt`
+- `GET /api/admin/platform/analytics`, `GET /api/admin/platform/reports/export` (owner/finance)
+- `/api/admin/platform/*` also provides role-gated learner/enrollment, course-content, coupon/promotion, CMS, support, review, and settings management.
+- `GET/POST/PATCH /api/admin-auth/users` (owner; create and manage named admin accounts)
 
-## Demo limitations
+## Admin and payment configuration
 
-The admin app at http://127.0.0.1:5174 requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` to be set in the backend environment. Set a unique, strong password and never commit real credentials. Admin sessions expire after eight hours; course and live-class write routes require a valid admin session. The API currently stores catalog, class, and enrollment changes in memory; users, profiles, resumes, OTP challenges, and sessions are stored in MongoDB. Checkout is a demo and does not process payments. Before production, add authorization checks for other protected routes, stronger login rate limiting, and real classroom/lesson integrations.
+The admin app at http://127.0.0.1:5174 requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the backend environment. Set a unique, strong password and never commit real credentials. `ADMIN_ROLE` defaults to `owner`. Additional configured admins can be supplied through `ADMIN_USERS_JSON`; database-managed admin accounts are created and maintained by an owner. Available roles are `owner`, `course_manager`, `support`, and `finance`. Admin sessions expire after eight hours. Email campaigns are limited to active users who explicitly enabled email updates in Account Settings; service messages and purchase receipts are unaffected.
+
+Courses, learners, enrollments, orders, coupons, CMS content, tickets, reviews, and audit history are stored in MongoDB. Courses are seeded from demo data only when their collection is empty. Draft or archived courses are omitted from public catalog and lesson APIs. Learners can access preview lessons before enrollment; full course lessons require enrollment.
+
+Checkout uses Razorpay. Configure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` with test credentials before testing payments, and use live credentials only after completing Razorpay production setup. Amounts and coupon eligibility are recalculated by the backend, and learner enrollment is granted only after signature verification. Refunds are available to owner and finance roles. Learner order history and printable receipts are available from the profile menu. Campaign email requires the SMTP settings above.

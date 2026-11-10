@@ -42,21 +42,3 @@ export const courses = [
     color: 'mint', progress: 0, enrolled: false,
   },
 ];
-
-export const liveClasses = [
-  {
-    id: 1, time: '10:30 AM', date: 'Today', title: 'Design systems: from zero to one',
-    course: 'UI/UX Design Fundamentals', instructor: 'Sarah Chen', initials: 'SC',
-    status: 'Live now', color: 'live',
-  },
-  {
-    id: 2, time: '02:00 PM', date: 'Today', title: 'Building your first REST API',
-    course: 'Full Stack Web Development', instructor: 'Marcus Johnson', initials: 'MJ',
-    status: 'In 3 hours', color: 'upcoming',
-  },
-  {
-    id: 3, time: '11:00 AM', date: 'Tomorrow', title: 'Python for data analysis',
-    course: 'Data Science with Python', instructor: 'Priya Sharma', initials: 'PS',
-    status: 'Tomorrow', color: 'later',
-  },
-];

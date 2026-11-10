@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Check, KeyRound, Link2, LoaderCircle, LockKeyhole, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Camera, Check, KeyRound, Link2, LoaderCircle, LockKeyhole, Pencil, Phone, ShieldCheck, UserRound } from 'lucide-react';
 import Footer from '../components/Footer.jsx';
 import Navbar from '../components/Navbar.jsx';
 import { getBlob, getJson, patchJson, postJson, uploadFile } from '../../../services/api.js';
@@ -215,12 +215,19 @@ function AccountSettingsPage() {
     setNotice(`Two-factor authentication ${result.twoFactorEnabled ? 'enabled' : 'disabled'}.`);
   });
 
+  const setMarketingConsent = (emailMarketingConsent) => runAction('notifications', async () => {
+    const result = await patchJson('/api/auth/profile/notifications', { emailMarketingConsent });
+    setProfile((current) => ({ ...current, emailMarketingConsent: result.emailMarketingConsent }));
+    setNotice(result.emailMarketingConsent ? 'Email updates enabled.' : 'Email updates disabled.');
+  });
+
   const avatarInitial = (profile?.name || 'S').trim().slice(0, 1).toUpperCase();
   const settingsSections = [
     { id: 'profile', label: 'Profile', icon: UserRound, description: 'Photo and full name' },
     { id: 'bio', label: 'Bio', icon: UserRound, description: 'About you' },
     { id: 'social', label: 'Social links', icon: Link2, description: 'Website and profiles' },
     { id: 'phone', label: 'Phone number', icon: Phone, description: 'Verified contact number' },
+    { id: 'notifications', label: 'Email updates', icon: Bell, description: 'Optional academy campaigns' },
     { id: 'password', label: 'Password', icon: KeyRound, description: 'Sign-in password' },
     { id: 'two-factor', label: 'Two-factor auth', icon: ShieldCheck, description: 'Extra sign-in protection' },
   ];
@@ -348,6 +355,13 @@ function AccountSettingsPage() {
                       </div>
                     </>
                   ) : <div className="flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">{profile.phone || phone || 'No phone number added'}</span>{profile.phoneVerified && <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold text-green-700">Verified</span>}</div>}
+                </section>
+              )}
+
+              {activeSection === 'notifications' && (
+                <section>
+                  <div className="mb-6 flex items-start gap-3"><Bell className="text-[#7A1F2B]" size={20} /><div><h2 className="m-0 font-[Manrope] text-lg font-bold">Email updates</h2><p className="mb-0 mt-1 max-w-xl text-xs leading-5 text-[#777582]">Choose whether SCS Academy may send you optional course announcements and promotional email campaigns. You can change this preference any time.</p></div></div>
+                  <label className="flex items-start gap-3 rounded-lg border border-[#e7e5ed] p-4 text-sm"><input className="mt-1 accent-[#7A1F2B]" type="checkbox" checked={profile.emailMarketingConsent === true} disabled={busy === 'notifications'} onChange={(event) => setMarketingConsent(event.target.checked)} /><span><strong className="block">I want to receive academy email updates</strong><span className="mt-1 block text-xs text-[#777582]">Required service messages about your account and purchases are not affected.</span></span></label>
                 </section>
               )}
 

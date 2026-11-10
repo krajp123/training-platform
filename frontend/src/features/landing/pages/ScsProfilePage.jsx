@@ -126,7 +126,8 @@ function ProfileActionButton({ icon: Icon, children, onClick, tone = 'light' }) 
   );
 }
 
-function EditButton({ editing, onClick, tone }) {
+function EditButton({ editing, onClick, tone, hidden = false }) {
+  if (hidden) return null;
   return (
     <ProfileActionButton icon={editing ? X : Pencil} onClick={onClick} tone={tone}>
       {editing ? 'Cancel' : 'Edit'}
@@ -517,7 +518,8 @@ function ProfilePageSkeleton() {
   );
 }
 
-function ScsProfilePage() {
+function ScsProfilePage({ adminLearnerId = '', adminToken = '', logoSrc = '/images/logo.png' }) {
+  const isAdminPreview = Boolean(adminLearnerId);
   const [profile, setProfile] = useState(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -541,7 +543,7 @@ function ScsProfilePage() {
   const avatarInput = useRef(null);
   const avatarMenuRef = useRef(null);
   const resumeMenuRef = useRef(null);
-  const token = localStorage.getItem('scs_session_token');
+  const token = isAdminPreview ? adminToken : localStorage.getItem('scs_session_token');
   const name = profile.name || 'Your name';
   const initial = useMemo(() => initials(name), [name]);
 
@@ -549,12 +551,33 @@ function ScsProfilePage() {
     let active = true;
     const loadProfile = async () => {
       try {
-        const { profile: loaded } = await getJson('/api/auth/profile');
+        let loaded;
+        if (isAdminPreview) {
+          const response = await fetch(`/api/admin/learners/${encodeURIComponent(adminLearnerId)}/profile`, {
+            headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Could not load learner profile.');
+          loaded = { ...result.learner.profile, name: result.learner.name, identifier: result.learner.identifier, type: result.learner.type, phone: result.learner.phone };
+        } else {
+          ({ profile: loaded } = await getJson('/api/auth/profile'));
+        }
         if (!active) return;
         setProfile({ ...emptyProfile, ...loaded, skills: { ...emptyProfile.skills, ...loaded.skills } });
         setLoadError('');
-        notifyAvatarChanged();
-        if (loaded.avatar?.filename) {
+        if (!isAdminPreview) notifyAvatarChanged();
+        if (isAdminPreview) {
+          const response = await fetch(`/api/admin/learners/${encodeURIComponent(adminLearnerId)}/avatar`, {
+            headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+          });
+          if (response.status !== 404) {
+            if (!response.ok) {
+              const result = await response.json();
+              throw new Error(result.error || 'Could not load learner profile photo.');
+            }
+            if (active) setAvatarUrl(URL.createObjectURL(await response.blob()));
+          }
+        } else if (loaded.avatar?.filename) {
           try {
             const image = await getBlob('/api/auth/profile/avatar');
             if (active) setAvatarUrl(URL.createObjectURL(image));
@@ -570,7 +593,7 @@ function ScsProfilePage() {
     };
     loadProfile();
     return () => { active = false; };
-  }, []);
+  }, [adminLearnerId, adminToken, isAdminPreview]);
 
   useEffect(() => {
     if (editing !== 'personal' || !personalEditFormRef.current) return undefined;
@@ -719,7 +742,26 @@ function ScsProfilePage() {
     setResumeError('');
     setResumeBusy(true);
     try {
-      const file = await getBlob('/api/auth/profile/resume');
+      let file;
+      if (isAdminPreview) {
+        const response = await fetch(`/api/admin/learners/${encodeURIComponent(adminLearnerId)}/resume`, {
+          headers: adminToken ? { Authorization: `Bearer ${adminToken}` } : {},
+        });
+        if (response.status === 401) window.dispatchEvent(new Event('admin-session-expired'));
+        if (!response.ok) {
+          let message = `Request failed with status ${response.status}.`;
+          try {
+            const result = await response.json();
+            message = result.error || message;
+          } catch (error) {
+            if (!(error instanceof SyntaxError)) throw error;
+          }
+          throw new Error(message);
+        }
+        file = await response.blob();
+      } else {
+        file = await getBlob('/api/auth/profile/resume');
+      }
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
@@ -839,7 +881,7 @@ function ScsProfilePage() {
       <Section
         id={section === 'workExperience' ? 'experience' : section}
         title={title}
-        action={['workExperience', 'education'].includes(section) && !isEditing ? (
+        action={isAdminPreview ? null : ['workExperience', 'education'].includes(section) && !isEditing ? (
           <ProfileActionButton icon={Plus} onClick={startEditing}>
             {section === 'workExperience' ? 'Add experience' : 'Add education'}
           </ProfileActionButton>
@@ -893,21 +935,21 @@ function ScsProfilePage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-[#FFFFFF] font-['DM_Sans',_sans-serif] text-[#17262b]">
       <style>{"@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=DM+Sans:wght@400;500;600;700&display=swap');"}</style>
-      <Navbar />
+      <Navbar logoSrc={logoSrc} isHomePageOverride={isAdminPreview ? false : undefined} />
       {loading ? <ProfilePageSkeleton /> : (
       <main className="mx-auto max-w-[1240px] px-4 pb-20 pt-6 sm:px-7 lg:px-8 lg:pt-8">
         {loadError && <p className="mb-4 rounded-lg border border-[#e8b9b4] bg-[#fdf1ef] p-3 text-sm text-[#8f2d26]" role="alert">{loadError}</p>}
-        {!token && <p className="mb-4 rounded-lg border border-[#ecd29b] bg-[#fdf6e4] p-3 text-sm text-[#7a5614]">Sign in to load and save your profile.</p>}
+        {!token && !isAdminPreview && <p className="mb-4 rounded-lg border border-[#ecd29b] bg-[#fdf6e4] p-3 text-sm text-[#7a5614]">Sign in to load and save your profile.</p>}
 
         <div className="grid items-start gap-8 lg:grid-cols-[330px_minmax(0,1fr)] lg:gap-12">
-          <aside className="lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:rounded-[22px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <aside className="min-w-0 lg:self-start">
             <div
               className="relative rounded-[22px] border border-white/15 p-6 text-white sm:p-7"
               style={{
                 background: 'linear-gradient(135deg, #4f1820 0%, #7A1F2B 30%, #8e292c 58%, #80321f 82%, #642619 100%)',
               }}
             >
-              {editing !== 'personal' && (
+              {editing !== 'personal' && !isAdminPreview && (
                 <div className="absolute right-5 top-5 z-10 sm:right-6 sm:top-6">
                   <button
                     type="button"
@@ -926,7 +968,7 @@ function ScsProfilePage() {
                     <img src={avatarUrl} alt={`${name}'s profile`} className="size-full object-cover" />
                   ) : initials(name)}
                 </div>
-                <div ref={avatarMenuRef} className="absolute -bottom-2 -right-2 z-20">
+                {!isAdminPreview && <div ref={avatarMenuRef} className="absolute -bottom-2 -right-2 z-20">
                   <button
                     type="button"
                     onClick={() => setAvatarMenuOpen((open) => !open)}
@@ -968,7 +1010,7 @@ function ScsProfilePage() {
                       <p className="m-0 border-t border-[#dbe2e1] px-3 py-2 text-[10px] font-medium text-[#6f8083]">JPEG, PNG, or WebP · Max 2 MB</p>
                     </div>
                   )}
-                </div>
+                </div>}
                 <input
                   ref={avatarInput}
                   type="file"
@@ -1015,7 +1057,7 @@ function ScsProfilePage() {
                         <FileText size={18} aria-hidden="true" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 text-xs font-bold text-white">{profile.resume ? 'Resume' : 'Upload your resume'}</p>
+                        <p className="m-0 text-xs font-bold text-white">{profile.resume ? 'Resume' : isAdminPreview ? 'No resume uploaded' : 'Upload your resume'}</p>
                         <p className="m-0 mt-0.5 truncate text-[11px] text-white/65">
                           {profile.resume
                             ? `${profile.resume.filename} · ${(profile.resume.size / 1024 / 1024).toFixed(2)} MB`
@@ -1024,7 +1066,7 @@ function ScsProfilePage() {
                       </div>
                       {profile.resume ? (
                         <>
-                          <div ref={resumeMenuRef} className="relative shrink-0">
+                          {!isAdminPreview && <div ref={resumeMenuRef} className="relative shrink-0">
                             <button
                               type="button"
                               onClick={() => setResumeMenuOpen((open) => !open)}
@@ -1047,19 +1089,20 @@ function ScsProfilePage() {
                                 </button>
                               </div>
                             )}
-                          </div>
+                          </div>}
                           <button
                             type="button"
                             onClick={downloadResume}
                             disabled={resumeBusy}
-                            className="grid size-8 shrink-0 place-items-center rounded-md bg-[#E97832] text-[#4f1820] transition-colors hover:bg-[#f18a49] disabled:opacity-50"
+                            className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-md bg-[#E97832] px-2.5 text-xs font-bold text-[#4f1820] transition-colors hover:bg-[#f18a49] disabled:opacity-50"
                             aria-label="Download resume"
                             title="Download resume"
                           >
                             <ArrowDownToLine size={16} aria-hidden="true" />
+                            <span>Download</span>
                           </button>
                         </>
-                      ) : (
+                      ) : isAdminPreview ? null : (
                         <button
                           type="button"
                           onClick={() => fileInput.current?.click()}
@@ -1114,7 +1157,7 @@ function ScsProfilePage() {
                 <Section
                   id="about"
                   title="About Me"
-                  action={<EditButton editing={editing === 'about'} onClick={() => editing === 'about' ? cancelEdit() : beginEdit('about', { about: profile.about })} />}
+                  action={<EditButton hidden={isAdminPreview} editing={editing === 'about'} onClick={() => editing === 'about' ? cancelEdit() : beginEdit('about', { about: profile.about })} />}
                 >
                   {editing === 'about' ? (
                     <>
@@ -1139,7 +1182,7 @@ function ScsProfilePage() {
                 <Section
                   id="languages"
                   title="Languages Spoken"
-                  action={<EditButton editing={editing === 'languages'} onClick={() => editing === 'languages' ? cancelEdit() : beginEdit('languages', { languages: profile.languages })} />}
+                  action={<EditButton hidden={isAdminPreview} editing={editing === 'languages'} onClick={() => editing === 'languages' ? cancelEdit() : beginEdit('languages', { languages: profile.languages })} />}
                 >
                   {editing === 'languages' ? (
                     <>
@@ -1154,7 +1197,7 @@ function ScsProfilePage() {
                 <Section
                   id="skills"
                   title="Skills"
-                  action={<EditButton editing={editing === 'skills'} onClick={() => editing === 'skills' ? cancelEdit() : beginEdit('skills', profile.skills)} />}
+                  action={<EditButton hidden={isAdminPreview} editing={editing === 'skills'} onClick={() => editing === 'skills' ? cancelEdit() : beginEdit('skills', profile.skills)} />}
                 >
                   {editing === 'skills' ? (
                     <><div className="grid gap-4">{sectionFields.skills.map((field) => <Field key={field.key} definition={field} value={draft[field.key]} onChange={updateDraft} />)}</div><SaveActions saving={saving} onSave={() => saveSection('skills', { skills: draft })} onCancel={cancelEdit} /></>
@@ -1184,7 +1227,7 @@ function ScsProfilePage() {
                 <Section
                   id="badges"
                   title="Badges"
-                  action={<EditButton editing={editing === 'badges'} onClick={() => editing === 'badges' ? cancelEdit() : beginEdit('badges', { badges: profile.badges })} />}
+                  action={<EditButton hidden={isAdminPreview} editing={editing === 'badges'} onClick={() => editing === 'badges' ? cancelEdit() : beginEdit('badges', { badges: profile.badges })} />}
                 >
                   {editing === 'badges' ? (
                     <><Field definition={{ key: 'badges', label: 'Badges (one per line)', list: true }} value={draft.badges} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('badges')} onCancel={cancelEdit} /></>
@@ -1194,7 +1237,7 @@ function ScsProfilePage() {
                 <Section
                   id="interests"
                   title="Interests"
-                  action={<EditButton editing={editing === 'interests'} onClick={() => editing === 'interests' ? cancelEdit() : beginEdit('interests', { interests: profile.interests })} />}
+                  action={<EditButton hidden={isAdminPreview} editing={editing === 'interests'} onClick={() => editing === 'interests' ? cancelEdit() : beginEdit('interests', { interests: profile.interests })} />}
                 >
                   {editing === 'interests' ? (
                     <><Field definition={{ key: 'interests', label: 'Interests (one per line)', list: true }} value={draft.interests} onChange={updateDraft} /><SaveActions saving={saving} onSave={() => saveSection('interests')} onCancel={cancelEdit} /></>
@@ -1219,7 +1262,7 @@ function ScsProfilePage() {
           onSave={saveCroppedAvatar}
         />
       )}
-      <Footer />
+      <Footer logoSrc={logoSrc} />
     </div>
   );
 }

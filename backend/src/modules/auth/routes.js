@@ -3,7 +3,7 @@ import multer from 'multer';
 import {
   changePassword, deleteAvatar, deleteResume, downloadResume, getAvatar, getProfile,
   loginWithPassword, requestPhoneOtp, requestTwoFactorOtp, saveProfile, sendOtp,
-  uploadAvatar, uploadResume, verify, verifyPhoneOtp, verifyTwoFactorOtp,
+  updateEmailMarketingConsent, uploadAvatar, uploadResume, verify, verifyPhoneOtp, verifyTwoFactorOtp,
 } from './controller.js';
 
 const router = Router();
@@ -24,6 +24,7 @@ router.post('/verify-otp', verify);
 router.post('/password-login', loginWithPassword);
 router.get('/profile', getProfile);
 router.patch('/profile', saveProfile);
+router.patch('/profile/notifications', updateEmailMarketingConsent);
 router.patch('/profile/security/password', changePassword);
 router.post('/profile/phone/request-otp', requestPhoneOtp);
 router.post('/profile/phone/verify-otp', verifyPhoneOtp);

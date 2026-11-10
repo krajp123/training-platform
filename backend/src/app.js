@@ -2,23 +2,28 @@ import 'dotenv/config';
 import express from 'express';
 import courseRoutes from './modules/courses/routes.js';
 import enrollmentRoutes from './modules/enrollments/routes.js';
-import liveClassRoutes from './modules/live-classes/routes.js';
 import authRoutes from './modules/auth/routes.js';
 import paymentRoutes from './modules/payments/routes.js';
 import adminAuthRoutes from './modules/admin-auth/routes.js';
+import adminWorkspaceRoutes from './modules/admin-workspace/routes.js';
+import { adminRouter as adminPlatformRoutes, publicRouter as platformContentRoutes, supportRouter } from './modules/admin-platform/routes.js';
 
 const app = express();
 
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok', service: 'skillpath-backend' });
 });
 app.use('/api/courses', courseRoutes);
-app.use('/api/live-classes', liveClassRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin-auth', adminAuthRoutes);
+app.use('/api/admin', adminWorkspaceRoutes);
+app.use('/api/admin/platform', adminPlatformRoutes);
+app.use('/api/platform', platformContentRoutes);
+app.use('/api/support', supportRouter);
 app.use('/api/payments', paymentRoutes);
 
 app.use((error, _request, response, _next) => {

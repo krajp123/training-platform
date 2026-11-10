@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import {
-  createCourse, deleteCourse, listCourses, updateCourse,
+  createCourse, deleteCourse, listAdminCourses, listCourses, updateCourse,
 } from './controller.js';
-import { requireAdmin } from '../admin-auth/controller.js';
+import { requireAdminRoles } from '../admin-auth/controller.js';
 
 const router = Router();
 
+router.get('/admin', requireAdminRoles('owner', 'course_manager'), listAdminCourses);
 router.get('/', listCourses);
-router.post('/', requireAdmin, createCourse);
-router.patch('/:id', requireAdmin, updateCourse);
-router.delete('/:id', requireAdmin, deleteCourse);
+router.post('/', requireAdminRoles('owner', 'course_manager'), createCourse);
+router.patch('/:id', requireAdminRoles('owner', 'course_manager'), updateCourse);
+router.delete('/:id', requireAdminRoles('owner', 'course_manager'), deleteCourse);
 
 export default router;

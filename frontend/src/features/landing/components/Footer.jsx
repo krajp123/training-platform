@@ -36,7 +36,7 @@ function FooterColumn({ title, links }) {
   );
 }
 
-function Footer({ showAccent = true }) {
+function Footer({ showAccent = true, logoSrc = '/images/logo.png' }) {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   return (
@@ -53,7 +53,7 @@ function Footer({ showAccent = true }) {
               href="/"
               aria-label="SCS Academy home"
             >
-              <img className="h-full w-full object-cover object-center" src="/images/logo.png" alt="SCS Academy" />
+              <img className="h-full w-full object-contain object-center" src={logoSrc} alt="SCS Academy" />
             </a>
 
             <p className="mb-0 mt-4 text-left text-sm leading-[1.6] text-[#686674] max-[480px]:text-xs max-[480px]:leading-[1.5]">

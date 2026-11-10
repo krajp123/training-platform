@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, ArrowRight, BookOpen, CheckCircle2, Clock3, Search, Star } from 'lucide-react';
 import Footer from '../components/Footer.jsx';
 import Navbar from '../components/Navbar.jsx';
@@ -20,8 +20,6 @@ const courses = [
     interested: '120+',
     image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
     type: 'BIM',
-    enrolled: true,
-    progress: 42,
   },
   {
     cartId: 'bim-1',
@@ -53,8 +51,6 @@ const courses = [
   },
 ];
 
-const levels = ['All levels', ...new Set(courses.map((course) => course.level))];
-
 function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, onGoToCart, onBuyNow }) {
   return (
     <article className={`flex overflow-hidden rounded-xl border border-[#e1e4eb] bg-white transition duration-200 hover:-translate-y-0.5 hover:border-[#c9c1ee] hover:shadow-[0_8px_20px_rgba(27,39,58,0.08)] ${enrolled ? 'max-w-[520px] flex-row max-[520px]:flex-col' : 'flex-col'}`}>
@@ -72,7 +68,7 @@ function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, o
           <span className="flex items-center gap-1"><BookOpen size={13} /> {course.hours}</span>
         </div>
         {!enrolled && <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <span className="rounded border border-[#a9dfe0] bg-[#e1f7f5] px-2 py-0.5 text-[10px] font-bold text-[#19727b]">Bestseller</span>
+          <span className="rounded border border-[#a9dfe0] bg-[#e1f7f5] px-2 py-0.5 text-[10px] font-bold text-[#19727b]">{course.badge || 'Course'}</span>
           <span className="rounded border border-[#dfe3ea] px-2 py-0.5 text-[10px] font-medium text-[#788598]">Course</span>
           <span className="rounded border border-[#eadfbd] bg-[#fffaf0] px-2 py-0.5 text-[10px] font-bold text-[#c98718]"><Star size={10} className="mr-0.5 inline fill-current" /> {course.rating}</span>
         </div>}
@@ -86,6 +82,8 @@ function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, o
           <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">
             <strong className="text-base text-[#122b45]">{course.price}</strong>
             <div className="flex flex-wrap gap-2">
+              {course.cartId?.startsWith('catalog-') ? <>
+                <Link className="inline-flex min-h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700 no-underline" to={`/learn/${course.cartId}`}>Curriculum</Link>
               <button
                 type="button"
                 className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#7A1F2B] px-3 text-xs font-bold text-[#7A1F2B] transition hover:bg-[#7A1F2B] hover:text-white"
@@ -94,6 +92,7 @@ function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, o
                 {isInCart ? 'Go to cart' : 'Add to cart'}
               </button>
               <button type="button" className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#7A1F2B] px-3 text-xs font-bold text-white transition hover:bg-[#641a25]" onClick={onBuyNow}>Buy now</button>
+              </> : <span className="self-center text-xs font-semibold text-slate-500">Enrollment opens soon</span>}
             </div>
           </div>
         )}
@@ -106,10 +105,41 @@ function CoursesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [level, setLevel] = useState('All levels');
+  const [catalogCourses, setCatalogCourses] = useState([]);
+  const [catalogError, setCatalogError] = useState('');
   const [cartCourseIds, setCartCourseIds] = useState([]);
   const [cartError, setCartError] = useState('');
   const [wishlistCourseIds, setWishlistCourseIds] = useState([]);
-  const enrolledCourses = courses.filter((course) => course.enrolled);
+  const visibleCatalog = useMemo(() => catalogCourses.map((course) => ({
+    ...course,
+    cartId: `catalog-${course.id}`,
+    type: course.category,
+    description: `${course.title} - expert-led training for practical, industry-ready skills.`,
+    price: `₹${Number(course.price).toLocaleString('en-IN')}`,
+    hours: `${course.lessons} lessons`,
+    enrolled: false,
+  })), [catalogCourses]);
+  const allCourses = useMemo(() => [...courses, ...visibleCatalog], [visibleCatalog]);
+  const enrolledCourses = allCourses.filter((course) => course.enrolled);
+  const availableLevels = ['All levels', ...new Set(allCourses.map((course) => course.level))];
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/courses')
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Course catalog could not be loaded.');
+        if (!Array.isArray(data)) throw new Error('The course catalog response was invalid.');
+        return data;
+      })
+      .then((data) => {
+        if (active) setCatalogCourses(data);
+      })
+      .catch((error) => {
+        if (active) setCatalogError(error.message);
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const updateCart = (cart) => setCartCourseIds(cart.map((item) => item.id));
@@ -158,11 +188,11 @@ function CoursesPage() {
 
   const visibleCourses = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return courses.filter((course) => {
+    return allCourses.filter((course) => {
       const matchesQuery = !normalizedQuery || `${course.title} ${course.level} ${course.description}`.toLowerCase().includes(normalizedQuery);
       return matchesQuery && (level === 'All levels' || course.level === level);
     });
-  }, [level, query]);
+  }, [allCourses, level, query]);
 
   const courseSections = [
     { title: 'All courses', items: visibleCourses },
@@ -174,7 +204,7 @@ function CoursesPage() {
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
       <Navbar />
       <main className="mx-auto max-w-[1180px] px-5 pb-10 sm:px-7">
-        {cartError && <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError}</p>}
+        {(cartError || catalogError) && <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError || catalogError}</p>}
         <section className="border-b border-[#edf0f4] py-7 sm:py-9">
           <div className="mt-2.5 flex flex-wrap items-start justify-between gap-4">
             <div><h1 className="m-0 font-[Manrope] text-[clamp(1.7rem,3vw,2.35rem)] font-bold tracking-[-.04em] text-[#112e49]">Empower Your Future with Industry-Ready Skills.</h1><p className="mb-0 mt-1.5 max-w-2xl text-sm leading-6 text-[#687789]">Explore expert-led courses designed to build real-world skills, enhance your knowledge, and accelerate your career growth.</p></div>
@@ -190,7 +220,7 @@ function CoursesPage() {
         <section className="pt-7" aria-labelledby="all-courses-title">
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div><h2 id="all-courses-title" className="m-0 font-['DM_Sans',_sans-serif] text-2xl font-bold tracking-[-.025em] text-[#182b49]">More courses for you</h2></div>
-            <select className="h-9 rounded-md border border-[#dfe3ea] bg-white px-2.5 text-xs text-[#34495e] outline-none focus:border-[#6048b7]" value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Filter by course level">{levels.map((item) => <option key={item}>{item}</option>)}</select>
+            <select className="h-9 rounded-md border border-[#dfe3ea] bg-white px-2.5 text-xs text-[#34495e] outline-none focus:border-[#6048b7]" value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Filter by course level">{availableLevels.map((item) => <option key={item}>{item}</option>)}</select>
           </div>
           <div className="mt-6 space-y-8">
             {courseSections.map((section) => (
@@ -202,7 +232,7 @@ function CoursesPage() {
                   <div className="grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {section.items.map((course) => (
                       <CourseCard
-                        key={`${section.title}-${course.title}-${course.level}`}
+                        key={`${section.title}-${course.cartId}`}
                         course={course}
                         isInCart={cartCourseIds.includes(course.cartId)}
                         isWishlisted={wishlistCourseIds.includes(course.cartId)}

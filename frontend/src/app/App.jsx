@@ -12,6 +12,9 @@ import CartPage from '../features/landing/pages/CartPage.jsx';
 import CheckoutPage from '../features/landing/pages/CheckoutPage.jsx';
 import WishlistPage from '../features/landing/pages/WishlistPage.jsx';
 import AccountSettingsPage from '../features/landing/pages/AccountSettingsPage.jsx';
+import SupportPage from '../features/landing/pages/SupportPage.jsx';
+import CourseLearningPage from '../features/learner/pages/CourseLearningPage.jsx';
+import PurchaseHistoryPage from '../features/learner/pages/PurchaseHistoryPage.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -65,7 +68,9 @@ function App() {
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/bim" element={<BimPage />} />
         <Route path="/courses/:slug" element={<PlaceholderPage title="Course details" />} />
-        <Route path="/learn/:courseSlug" element={<PlaceholderPage title="Course learning" />} />
+        <Route path="/learn/:courseId" element={<CourseLearningPage />} />
+        <Route path="/support" element={<SupportPage />} />
+        <Route path="/orders" element={<PurchaseHistoryPage />} />
         <Route path="/login" element={<AuthEntryPage mode="login" />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditionsPage />} />

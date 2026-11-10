@@ -10,7 +10,7 @@ const MAX_ATTEMPTS = 5;
 let client;
 let database;
 
-function getDatabase() {
+export function getDatabase() {
   if (!database) {
     const uri = process.env.MONGODB_URI;
     const databaseName = process.env.MONGODB_DB || 'skillpath';
@@ -122,6 +122,7 @@ export async function requestOtp({ identifier: rawIdentifier, purpose, name }) {
       error.statusCode = 404;
       throw error;
     }
+    if (user.status === 'suspended') throw makeError('This account has been suspended. Contact support for assistance.', 403);
     if (user.twoFactorEnabled) {
       const error = new Error('Two-factor authentication is enabled. Sign in with your password to continue.');
       error.statusCode = 403;
@@ -191,6 +192,7 @@ export async function verifyOtp({ identifier: rawIdentifier, purpose, otp, name 
     error.statusCode = 404;
     throw error;
   }
+  assertActiveUser(user);
 
   if (purpose === 'login' && user.twoFactorEnabled) {
     throw makeError('Two-factor authentication is enabled. Sign in with your password to continue.', 403);
@@ -248,6 +250,7 @@ export async function getAuthenticatedUser(token) {
     error.statusCode = 401;
     throw error;
   }
+  assertActiveUser(user);
   return user;
 }
 
@@ -255,6 +258,12 @@ function makeError(message, statusCode = 400) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+function assertActiveUser(user) {
+  if (user.status === 'suspended') {
+    throw makeError('This account has been suspended. Contact support for assistance.', 403);
+  }
 }
 
 async function sendChallenge(identifier, purpose, extra = {}) {
@@ -361,6 +370,7 @@ export async function passwordLogin({ identifier: rawIdentifier, password, remot
     );
     throw makeError('Invalid email/phone number or password.', 401);
   }
+  assertActiveUser(user);
   await attempts.deleteOne({ attemptKey });
 
   if (user.twoFactorEnabled) {
@@ -459,7 +469,7 @@ export async function verifyTwoFactorChange(userId, { otp, enabled }) {
 export async function getUserProfile(userId) {
   const db = await getDatabase();
   const [user, profile] = await Promise.all([
-    db.collection('users').findOne({ _id: userId }, { projection: { name: 1, identifier: 1, type: 1, phone: 1, phoneVerified: 1, passwordHash: 1, twoFactorEnabled: 1 } }),
+    db.collection('users').findOne({ _id: userId }, { projection: { name: 1, identifier: 1, type: 1, phone: 1, phoneVerified: 1, passwordHash: 1, twoFactorEnabled: 1, emailMarketingConsent: 1 } }),
     db.collection('profiles').findOne({ userId }, { projection: { _id: 0, userId: 0, 'resume.data': 0, 'avatar.data': 0 } }),
   ]);
   return {
@@ -470,6 +480,7 @@ export async function getUserProfile(userId) {
     phoneVerified: user?.phoneVerified ?? user?.type === 'phone',
     passwordEnabled: Boolean(user?.passwordHash),
     twoFactorEnabled: Boolean(user?.twoFactorEnabled),
+    emailMarketingConsent: user?.emailMarketingConsent === true,
     headline: '',
     jobTitle: '',
     companyName: '',
@@ -488,6 +499,13 @@ export async function getUserProfile(userId) {
     avatar: null,
     ...profile,
   };
+}
+
+export async function setEmailMarketingConsent(userId, consent) {
+  if (typeof consent !== 'boolean') throw makeError('emailMarketingConsent must be true or false.');
+  const db = await getDatabase();
+  await db.collection('users').updateOne({ _id: userId }, { $set: { emailMarketingConsent: consent, updatedAt: new Date() } });
+  return consent;
 }
 
 export async function saveUserAvatar(userId, file) {
