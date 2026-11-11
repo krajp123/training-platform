@@ -6,51 +6,6 @@ import Navbar from '../components/Navbar.jsx';
 import { addToCart, getCart, subscribeToCart } from '../../../services/cart.js';
 import { getWishlist, subscribeToWishlist, toggleWishlist } from '../../../services/wishlist.js';
 
-const courses = [
-  {
-    cartId: 'bim-0',
-    title: 'BIM Professional Program',
-    level: 'Foundation',
-    description: 'Build practical BIM foundations through guided exercises.',
-    badge: 'Bestseller',
-    duration: '1 month',
-    hours: '20 hours',
-    price: '₹4,999',
-    rating: '4.8',
-    interested: '120+',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
-    type: 'BIM',
-  },
-  {
-    cartId: 'bim-1',
-    title: 'BIM Professional Program',
-    level: 'Career Track',
-    description: 'Develop job-ready BIM skills with project-based learning.',
-    badge: 'Bestseller',
-    duration: '6 months',
-    hours: '120 hours',
-    price: '₹24,999',
-    rating: '4.8',
-    interested: '240+',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
-    type: 'BIM',
-  },
-  {
-    cartId: 'bim-2',
-    title: 'BIM Professional Program',
-    level: 'Advanced',
-    description: 'Build advanced BIM expertise through a year-long learning path.',
-    badge: 'Bestseller',
-    duration: '1 year',
-    hours: '240 hours',
-    price: '₹39,999',
-    rating: '4.8',
-    interested: '180+',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85',
-    type: 'BIM',
-  },
-];
-
 function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, onGoToCart, onBuyNow }) {
   return (
     <article className={`flex overflow-hidden rounded-xl border border-[#e1e4eb] bg-white transition duration-200 hover:-translate-y-0.5 hover:border-[#c9c1ee] hover:shadow-[0_8px_20px_rgba(27,39,58,0.08)] ${enrolled ? 'max-w-[520px] flex-row max-[520px]:flex-col' : 'flex-col'}`}>
@@ -60,7 +15,6 @@ function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, o
           <span className="rounded-full bg-[#f1effb] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6048b7]">{course.level}</span>
           <span className="flex items-center gap-1 text-[11px] font-semibold text-[#687789]"><Star size={12} className="fill-amber-400 text-amber-500" /> {course.rating}</span>
         </div>
-        {enrolled && <span className="text-[11px] font-semibold text-[#65728a]">The Complete BIM Professional Program</span>}
         <h3 className={`${enrolled ? 'mt-1' : 'mt-2.5'} font-[Manrope] text-[15px] font-bold leading-[1.2] text-[#112e49]`}>{enrolled ? 'Continue with your course' : course.title}</h3>
         <p className={`mt-1.5 text-xs leading-5 text-[#687789] ${enrolled ? 'hidden' : ''}`}>{course.description}</p>
         <div className={`mt-3 flex gap-4 border-t border-[#edf0f4] pt-3 text-[11px] font-semibold text-[#687789] ${enrolled ? 'hidden' : ''}`}>
@@ -119,7 +73,7 @@ function CoursesPage() {
     hours: `${course.lessons} lessons`,
     enrolled: false,
   })), [catalogCourses]);
-  const allCourses = useMemo(() => [...courses, ...visibleCatalog], [visibleCatalog]);
+  const allCourses = visibleCatalog;
   const enrolledCourses = allCourses.filter((course) => course.enrolled);
   const availableLevels = ['All levels', ...new Set(allCourses.map((course) => course.level))];
 
@@ -194,20 +148,16 @@ function CoursesPage() {
     });
   }, [allCourses, level, query]);
 
-  const courseSections = [
-    { title: 'All courses', items: visibleCourses },
-    { title: 'BIM Learning Pathways', items: visibleCourses.filter((course) => course.type === 'BIM') },
-    { title: 'Computational design', items: visibleCourses.filter((course) => course.type === 'Computational design') },
-  ];
+  const courseSections = [{ title: 'All courses', items: visibleCourses }];
 
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#12243a]">
       <Navbar />
-      <main className="mx-auto max-w-[1180px] px-5 pb-10 sm:px-7">
+      <main className="customer-page-container pb-10">
         {(cartError || catalogError) && <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError || catalogError}</p>}
         <section className="border-b border-[#edf0f4] py-7 sm:py-9">
           <div className="mt-2.5 flex flex-wrap items-start justify-between gap-4">
-            <div><h1 className="m-0 font-[Manrope] text-[clamp(1.7rem,3vw,2.35rem)] font-bold tracking-[-.04em] text-[#112e49]">Empower Your Future with Industry-Ready Skills.</h1><p className="mb-0 mt-1.5 max-w-2xl text-sm leading-6 text-[#687789]">Explore expert-led courses designed to build real-world skills, enhance your knowledge, and accelerate your career growth.</p></div>
+            <div><h1 className="customer-page-title text-[#112e49]">Empower Your Future with Industry-Ready Skills.</h1><p className="customer-page-lead mb-0 max-w-2xl text-[#687789]">Explore expert-led courses designed to build real-world skills, enhance your knowledge, and accelerate your career growth.</p></div>
             <label className="mt-2 flex h-10 w-full max-w-[300px] items-center gap-2.5 rounded-md border border-[#dfe3ea] px-3 shadow-sm focus-within:border-[#6048b7]"><Search size={16} className="text-[#8290a0]" /><span className="sr-only">Search courses</span><input className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-[#9aa4b1]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search courses" /></label>
           </div>
         </section>
@@ -219,7 +169,7 @@ function CoursesPage() {
 
         <section className="pt-7" aria-labelledby="all-courses-title">
           <div className="flex flex-wrap items-end justify-between gap-5">
-            <div><h2 id="all-courses-title" className="m-0 font-['DM_Sans',_sans-serif] text-2xl font-bold tracking-[-.025em] text-[#182b49]">More courses for you</h2></div>
+            <div><h2 id="all-courses-title" className="customer-page-section-title text-[#182b49]">More courses for you</h2></div>
             <select className="h-9 rounded-md border border-[#dfe3ea] bg-white px-2.5 text-xs text-[#34495e] outline-none focus:border-[#6048b7]" value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Filter by course level">{availableLevels.map((item) => <option key={item}>{item}</option>)}</select>
           </div>
           <div className="mt-6 space-y-8">

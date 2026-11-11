@@ -155,6 +155,7 @@ export async function listAdminEnrollments(request, response, next) {
           courseId: 1,
           progress: 1,
           createdAt: 1,
+          learnerId: { $toString: '$learner._id' },
           learnerName: { $ifNull: ['$learner.name', 'Unknown learner'] },
           learnerIdentifier: '$learner.identifier',
           courseTitle: { $ifNull: ['$course.title', 'Deleted course'] },
@@ -166,6 +167,68 @@ export async function listAdminEnrollments(request, response, next) {
     ];
     const enrollments = await database.collection('enrollments').aggregate(pipeline).toArray();
     response.json({ enrollments, page, limit });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getLearnerEnrollmentDetails(request, response, next) {
+  try {
+    if (!ObjectId.isValid(request.params.id)) return sendError(response, 400, 'A valid learner ID is required.');
+    const learnerId = new ObjectId(request.params.id);
+    const database = await initializeCatalog();
+    const [learner, enrollments] = await Promise.all([
+      database.collection('users').findOne(
+        { _id: learnerId },
+        { projection: { name: 1, identifier: 1 } },
+      ),
+      database.collection('enrollments').find({ userId: learnerId }).sort({ createdAt: -1 }).toArray(),
+    ]);
+    if (!learner) return sendError(response, 404, 'Learner not found.');
+
+    const courseIds = [...new Set(enrollments.map(({ courseId }) => courseId))];
+    const orderIds = [...new Set(enrollments.map(({ orderId }) => orderId).filter(Boolean))];
+    const [courses, orders] = await Promise.all([
+      courseIds.length
+        ? database.collection('courses').find({ id: { $in: courseIds } }, { projection: { id: 1, title: 1, instructor: 1, price: 1 } }).toArray()
+        : [],
+      orderIds.length
+        ? database.collection('orders').find(
+          { razorpayOrderId: { $in: orderIds } },
+          { projection: { razorpayOrderId: 1, amount: 1, currency: 1, status: 1, paidAt: 1, createdAt: 1, courseIds: 1, courseItems: 1 } },
+        ).toArray()
+        : [],
+    ]);
+    const coursesById = new Map(courses.map((course) => [course.id, course]));
+    const ordersById = new Map(orders.map((order) => [order.razorpayOrderId, order]));
+
+    response.json({
+      learner: { id: String(learnerId), name: learner.name, identifier: learner.identifier },
+      enrollments: enrollments.map((enrollment) => {
+        const order = ordersById.get(enrollment.orderId);
+        const courseItem = order?.courseItems?.find((item) => Number(item.courseId) === Number(enrollment.courseId));
+        const storedPrice = enrollment.purchasePrice;
+        const purchasePrice = storedPrice !== undefined && storedPrice !== null
+          ? Number(storedPrice)
+          : courseItem?.purchasePrice !== undefined
+            ? Number(courseItem.purchasePrice)
+            : order?.status === 'paid' && order.courseIds?.length === 1
+              ? Number(order.amount)
+              : !order && Number(coursesById.get(enrollment.courseId)?.price) === 0
+                ? 0
+                : null;
+        return {
+          courseId: enrollment.courseId,
+          courseTitle: coursesById.get(enrollment.courseId)?.title || 'Deleted course',
+          instructorName: coursesById.get(enrollment.courseId)?.instructor || 'Not specified',
+          createdAt: enrollment.createdAt,
+          purchasedAt: order?.paidAt || enrollment.createdAt,
+          progress: enrollment.progress || 0,
+          purchasePrice: Number.isFinite(purchasePrice) ? purchasePrice : null,
+          currency: enrollment.purchaseCurrency || order?.currency || 'INR',
+        };
+      }),
+    });
   } catch (error) {
     next(error);
   }

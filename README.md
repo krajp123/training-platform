@@ -86,6 +86,7 @@ SMTP_SECURE=true
 SMTP_USER=...
 SMTP_PASSWORD=... # Gmail App Password
 SMTP_FROM="SCS Academy <your-gmail-address@gmail.com>"
+SUPPORT_EMAIL=admin@example.com # Optional; falls back to platform supportEmail, ADMIN_EMAIL, then SMTP_USER.
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_FROM_NUMBER=+1...
@@ -112,7 +113,7 @@ This builds both React applications. The backend is a Node.js service and does n
 - `GET /api/admin/enrollments`, `PATCH /api/admin/enrollments/:id/progress` (admin)
 - `GET /api/courses`, `GET /api/courses/admin` (admin), `POST /api/courses`
 - `PATCH /api/courses/:id`, `DELETE /api/courses/:id`
-- `POST /api/enrollments` (authenticated learner)
+- `GET /api/enrollments/my`, `POST /api/enrollments` (authenticated learner)
 - `POST /api/auth/request-otp`
 - `POST /api/auth/verify-otp`
 - `POST /api/auth/password-login`
@@ -131,7 +132,7 @@ This builds both React applications. The backend is a Node.js service and does n
 - `GET /api/platform/content`, `GET /api/platform/courses/:courseId/content`, `GET /api/platform/courses/:courseId/reviews`
 - `POST /api/platform/coupons/validate`
 - `POST /api/support/tickets`, `POST /api/support/reviews` (authenticated learner)
-- `POST /api/payments/create-order`, `POST /api/payments/verify-signature` (authenticated learner)
+- `POST /api/payments/create-order`, `POST /api/payments/verify-signature` (authenticated learner), `POST /api/payments/webhook` (`payment.captured` event; Razorpay signature required)
 - `GET /api/payments/my-orders`, `GET /api/payments/my-orders/:id/receipt`
 - `GET /api/admin/platform/analytics`, `GET /api/admin/platform/reports/export` (owner/finance)
 - `/api/admin/platform/*` also provides role-gated learner/enrollment, course-content, coupon/promotion, CMS, support, review, and settings management.
@@ -143,4 +144,8 @@ The admin app at http://127.0.0.1:5174 requires `ADMIN_EMAIL` and `ADMIN_PASSWOR
 
 Courses, learners, enrollments, orders, coupons, CMS content, tickets, reviews, and audit history are stored in MongoDB. Courses are seeded from demo data only when their collection is empty. Draft or archived courses are omitted from public catalog and lesson APIs. Learners can access preview lessons before enrollment; full course lessons require enrollment.
 
-Checkout uses Razorpay. Configure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` with test credentials before testing payments, and use live credentials only after completing Razorpay production setup. Amounts and coupon eligibility are recalculated by the backend, and learner enrollment is granted only after signature verification. Refunds are available to owner and finance roles. Learner order history and printable receipts are available from the profile menu. Campaign email requires the SMTP settings above.
+Checkout uses Razorpay. Configure `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` with test credentials before testing payments, and use live credentials only after completing Razorpay production setup. Amounts and coupon eligibility are recalculated by the backend; the payment signature, captured status, amount, and currency are verified before learner enrollment is granted. Paid courses cannot be enrolled through the standalone enrollment endpoint.
+
+For reliable payment confirmation when a learner closes the checkout or loses connectivity, configure a Razorpay webhook in the Dashboard. Set its URL to `https://<your-api-host>/api/payments/webhook`, subscribe to the `payment.captured` event, and save the generated webhook signing secret as `RAZORPAY_WEBHOOK_SECRET` in the backend environment. This webhook secret is separate from `RAZORPAY_KEY_SECRET`. Without a configured webhook, the checkout callback and retry flow remain available, but payment confirmation cannot be recovered automatically if the browser never returns the payment result.
+
+Refunds are available to owner and finance roles. Learner order history and printable receipts are available from the profile menu. Campaign email requires the SMTP settings above.

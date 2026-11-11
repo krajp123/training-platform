@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpRight, BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, LogOut,
+  ArrowUpRight, BookOpen, Check, ChevronFirst, ChevronLeft, ChevronRight, CircleAlert, ListFilter, LogOut,
   GraduationCap, LayoutDashboard, Menu, Pencil, Plus, RefreshCw, Search, Trash2, X,
   Activity, BadgePercent, BookOpenCheck, ClipboardList, Download, Inbox, LibraryBig, Megaphone, MessageSquare, Shield, Ticket, Users, UsersRound, Wallet,
 } from 'lucide-react';
@@ -28,16 +28,6 @@ const panels = [
   ['settings', 'Settings & admin access', Shield],
 ];
 
-const panelDescriptions = {
-  analytics: 'Track enrollments, revenue and sign-ups, and export reports.',
-  learning: 'Organise sections and lessons for each course, or bulk import a catalog.',
-  learners: 'Search learners, review enrollments and grant course access.',
-  payments: 'Manage coupons, promotions, orders and refunds.',
-  content: 'Publish announcements, banners and help content, and send email campaigns.',
-  support: 'Respond to learner requests and moderate course reviews.',
-  settings: 'Configure the platform and manage admin accounts.',
-};
-
 const rolePanels = {
   owner: panels.map(([id]) => id),
   course_manager: ['learning', 'learners', 'payments', 'content', 'support'],
@@ -51,6 +41,21 @@ const roleLabels = {
   support: 'Support',
   finance: 'Finance',
 };
+
+const ADMIN_VIEW_KEY = 'skillpath-admin-view';
+
+function getInitialAdminView() {
+  const savedView = sessionStorage.getItem(ADMIN_VIEW_KEY);
+  const validViews = new Set([
+    'overview',
+    'courses',
+    'homepage-courses',
+    'learners',
+    'enrollments',
+    ...panels.map(([id]) => `tools:${id}`),
+  ]);
+  return validViews.has(savedView) ? savedView : 'overview';
+}
 
 /* ------------------------------------------------------------------ */
 /*  Shared style tokens                                                */
@@ -100,6 +105,81 @@ function statusTone(status) {
   if (['draft', 'pending', 'open', 'in_progress', 'partially_refunded', 'normal'].includes(value)) return 'amber';
   if (['suspended', 'disabled', 'failed', 'rejected', 'urgent', 'high'].includes(value)) return 'rose';
   return 'slate';
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getAnalyticsPeriodRange(period, now = new Date()) {
+  if (period === 'sixMonths') {
+    return {
+      from: new Date(now.getFullYear(), now.getMonth() - 5, 1),
+      to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+    };
+  }
+  if (period === 'year') {
+    return {
+      from: new Date(now.getFullYear(), 0, 1),
+      to: new Date(now.getFullYear(), 11, 31),
+    };
+  }
+  return {
+    from: new Date(now.getFullYear(), now.getMonth(), 1),
+    to: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+  };
+}
+
+function buildTrendSeries(dailyItems, valueKey, period, fromValue, toValue) {
+  const from = fromValue ? new Date(`${fromValue}T00:00:00`) : getAnalyticsPeriodRange(period).from;
+  const to = toValue ? new Date(`${toValue}T00:00:00`) : getAnalyticsPeriodRange(period).to;
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return [];
+
+  const dayCount = Math.round((new Date(to.getFullYear(), to.getMonth(), to.getDate()) - new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 86400000) + 1;
+  const groupByMonth = period === 'sixMonths' || period === 'year' || (period === 'custom' && dayCount > 62);
+  const totals = new Map();
+  dailyItems.forEach((item) => {
+    const dateKey = String(item._id || '').slice(0, 10);
+    if (!dateKey) return;
+    const key = groupByMonth ? dateKey.slice(0, 7) : dateKey;
+    totals.set(key, (totals.get(key) || 0) + Number(item[valueKey] || 0));
+  });
+
+  const series = [];
+  let cursor = new Date(from.getFullYear(), groupByMonth ? from.getMonth() : from.getMonth(), groupByMonth ? 1 : from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), groupByMonth ? 1 : to.getDate());
+  while (cursor <= end) {
+    const key = groupByMonth
+      ? `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
+      : formatDateInput(cursor);
+    const label = groupByMonth
+      ? cursor.toLocaleDateString('en-IN', { month: 'short' })
+      : String(cursor.getDate());
+    const detail = groupByMonth
+      ? cursor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+      : cursor.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    series.push({ key, label, detail, value: totals.get(key) || 0 });
+    if (groupByMonth) cursor.setMonth(cursor.getMonth() + 1);
+    else cursor.setDate(cursor.getDate() + 1);
+  }
+  return series;
+}
+
+function formatAdminDate(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+}
+
+function formatAdminCurrency(value, currency = 'INR') {
+  const amount = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(amount)
+    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 2 }).format(amount)
+    : 'Not recorded';
 }
 
 /* ------------------------------------------------------------------ */
@@ -165,6 +245,181 @@ function EmptyState({ icon: Icon = Inbox, title, description }) {
   );
 }
 
+function SkeletonTable({ columns, rows = 5, title, sharp = false, avatars = false, minWidth = '640px' }) {
+  const widths = ['w-3/4', 'w-2/3', 'w-1/2', 'w-4/5', 'w-3/5'];
+  return (
+    <div className={`overflow-hidden border border-slate-200 bg-white ${sharp ? '' : 'rounded-xl'}`}>
+      {title && <div className="border-b border-slate-100 px-4 py-3"><div className="h-4 w-28 rounded bg-slate-200" /></div>}
+      <div className="overflow-x-auto">
+        <table className={`w-full border-collapse ${minWidth === '900px' ? 'min-w-[900px]' : minWidth === '760px' ? 'min-w-[760px]' : 'min-w-[640px]'}`}>
+          <thead>
+            <tr>{Array.from({ length: columns }, (_, index) => <th className="border-b border-slate-200 px-4 py-3" key={index}><div className="h-2.5 w-3/4 rounded bg-slate-200" /></th>)}</tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: rows }, (_, row) => (
+              <tr className="border-b border-slate-100" key={row}>
+                {Array.from({ length: columns }, (_, column) => (
+                  <td className="px-4 py-3" key={column}>
+                    <div className="flex items-center gap-2">
+                      {avatars && column === 0 && <span className="size-8 shrink-0 rounded-full bg-slate-100" />}
+                      <span className={`block h-3 rounded bg-slate-100 ${widths[(row + column) % widths.length]}`} />
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonPanel({ className = '', lines = 4 }) {
+  return (
+    <div className={`space-y-4 rounded-xl border border-slate-200 bg-white p-5 ${className}`}>
+      <div className="h-5 w-36 rounded bg-slate-200" />
+      {Array.from({ length: lines }, (_, index) => <div className={`h-9 rounded bg-slate-100 ${index === 0 ? 'w-full' : ''}`} key={index} />)}
+    </div>
+  );
+}
+
+function AdminSectionSkeleton({ view, showHeader = true }) {
+  const isOverview = view === 'overview';
+  const headerAction = view === 'courses' || view === 'homepage-courses'
+    ? 'h-9 w-28'
+    : view === 'enrollments'
+      ? 'h-6 w-20'
+      : view.startsWith('tools:')
+        ? 'h-9 w-24'
+        : '';
+  const header = showHeader && (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="space-y-2">
+        <div className="h-7 w-52 rounded bg-slate-200" />
+        <div className="h-4 w-72 max-w-full rounded bg-slate-100" />
+      </div>
+      {headerAction && <div className={`${headerAction} rounded-lg bg-slate-100`} />}
+    </div>
+  );
+
+  let content;
+  if (isOverview) {
+    content = (
+      <>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[0, 1, 2, 3, 4, 5].map((item) => <div className="h-16 rounded-lg bg-slate-100" key={item} />)}
+        </div>
+        <div className="grid gap-6 border-t border-slate-200 pt-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(320px,1.1fr)]">
+          <div className="min-h-64 space-y-4 lg:border-r lg:border-slate-200 lg:pr-8">
+            <div className="h-6 w-44 rounded bg-slate-200" />
+            {[0, 1, 2, 3, 4].map((item) => <div className="h-10 border-b border-slate-100 bg-slate-50" key={item} />)}
+          </div>
+          <div className="min-h-64 space-y-4 lg:pl-8">
+            <div className="h-6 w-36 rounded bg-slate-200" />
+            {[0, 1, 2, 3].map((item) => <div className="h-12 border-b border-slate-100 bg-slate-50" key={item} />)}
+          </div>
+        </div>
+      </>
+    );
+  } else if (view === 'courses') {
+    content = (
+      <>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300 px-4 py-3">
+          <div className="space-y-2"><div className="h-5 w-28 rounded bg-slate-200" /><div className="h-3 w-40 rounded bg-slate-100" /></div>
+          <div className="h-10 w-full rounded-lg bg-slate-100 sm:w-72" />
+        </div>
+        <div className="grid gap-4 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((item) => (
+            <div className="overflow-hidden border border-slate-200 bg-white" key={item}>
+              <div className="h-32 bg-slate-100" />
+              <div className="space-y-3 p-3">
+                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="h-3 w-1/2 rounded bg-slate-100" />
+                <div className="h-3 w-full rounded bg-slate-100" />
+                <div className="h-3 w-2/3 rounded bg-slate-100" />
+                <div className="h-8 border-t border-slate-100 pt-2"><div className="h-4 w-20 rounded bg-slate-100" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  } else if (view === 'learners') {
+    content = (
+      <>
+        <div className="h-10 w-full rounded-lg bg-slate-100 sm:w-72" />
+        <SkeletonTable columns={6} rows={7} sharp avatars minWidth="900px" />
+      </>
+    );
+  } else if (view === 'enrollments') {
+    content = <SkeletonTable columns={2} rows={7} minWidth="640px" />;
+  } else if (view === 'tools:analytics') {
+    content = (
+      <div className="space-y-6">
+        <SkeletonPanel className="min-h-32" lines={2} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">{[0, 1, 2, 3, 4].map((item) => <div className="h-24 rounded-2xl border border-slate-200 bg-white p-5" key={item}><div className="h-3 w-20 rounded bg-slate-100" /><div className="mt-4 h-6 w-24 rounded bg-slate-200" /></div>)}</div>
+        <div className="grid gap-4 lg:grid-cols-2"><SkeletonPanel className="h-64" lines={1} /><SkeletonPanel className="h-64" lines={1} /></div>
+        <div className="grid gap-4 xl:grid-cols-2"><SkeletonTable columns={3} rows={4} title=" " /><SkeletonTable columns={3} rows={4} title=" " /></div>
+      </div>
+    );
+  } else if (view === 'tools:learning') {
+    content = (
+      <div className="grid items-start gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="space-y-4"><SkeletonPanel lines={4} /><SkeletonPanel lines={3} /></div>
+        <div className="space-y-6"><SkeletonPanel lines={5} /><SkeletonTable columns={4} rows={4} title=" " /><SkeletonPanel lines={3} /></div>
+      </div>
+    );
+  } else if (view === 'tools:learners') {
+    content = (
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
+          <div className="space-y-4"><div className="flex gap-2"><div className="h-10 flex-1 rounded-lg bg-slate-100" /><div className="h-10 w-24 rounded-lg bg-slate-200" /></div><SkeletonTable columns={5} rows={5} title=" " /></div>
+          <div className="space-y-4"><div className="h-10 rounded-lg bg-slate-100" /><SkeletonTable columns={5} rows={4} title=" " /></div>
+        </div>
+        <div className="space-y-4"><SkeletonPanel lines={4} /><SkeletonPanel lines={3} /></div>
+      </div>
+    );
+  } else if (view === 'tools:payments') {
+    content = (
+      <div className="space-y-6">
+        <div className="grid gap-6 xl:grid-cols-2"><SkeletonPanel lines={5} /><SkeletonPanel lines={4} /></div>
+        <SkeletonTable columns={5} rows={4} title=" " />
+        <SkeletonTable columns={6} rows={6} title=" " />
+      </div>
+    );
+  } else if (view === 'tools:content') {
+    content = (
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6"><SkeletonPanel lines={6} /><SkeletonPanel lines={4} /><SkeletonPanel lines={4} /></div>
+        <SkeletonPanel lines={6} />
+      </div>
+    );
+  } else if (view === 'tools:support') {
+    content = (
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        {[0, 1].map((column) => <div className="space-y-4" key={column}><div className="h-6 w-52 rounded bg-slate-200" />{[0, 1, 2].map((item) => <SkeletonPanel className="min-h-40" key={item} lines={3} />)}</div>)}
+      </div>
+    );
+  } else if (view === 'tools:settings') {
+    content = (
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <SkeletonPanel lines={7} />
+        <SkeletonPanel lines={6} />
+      </div>
+    );
+  } else {
+    content = <div className="grid gap-6 md:grid-cols-2"><SkeletonPanel lines={5} /><SkeletonPanel lines={4} /></div>;
+  }
+
+  return (
+    <div aria-label="Loading admin section" className="animate-pulse space-y-6" role="status">
+      {header}
+      {content}
+    </div>
+  );
+}
+
 function Avatar({ name }) {
   const letters = String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
   return <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-100 text-xs font-bold text-violet-700">{letters}</span>;
@@ -183,16 +438,16 @@ function OperationsForm({ children, onSubmit }) {
   return <form className="grid gap-4 sm:grid-cols-2" onSubmit={onSubmit}>{children}</form>;
 }
 
-function DataTable({ title, headers, children }) {
+function DataTable({ title, headers, children, compact = false, className = '' }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className={`min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white ${className}`}>
       {title && <div className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-900">{title}</div>}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-          <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            <tr>{headers.map((header) => <th className="whitespace-nowrap px-4 py-3" key={header}>{header}</th>)}</tr>
+      <div className={compact ? 'w-full' : 'overflow-x-auto'}>
+        <table className={`w-full border-collapse text-left ${compact ? 'table-fixed text-xs' : 'min-w-[640px] text-sm'}`}>
+          <thead className={`${compact ? 'bg-slate-100 text-slate-600' : 'bg-slate-50 text-slate-500'} font-semibold uppercase tracking-wider ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+            <tr>{headers.map((header) => <th className={`${compact ? 'whitespace-normal px-2 py-2' : 'whitespace-nowrap px-4 py-3'}`} key={header}>{header}</th>)}</tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">{children}</tbody>
+          <tbody className={`divide-y divide-slate-100 ${compact ? '[&_td]:break-words [&_td]:px-2 [&_td]:py-2 [&_td]:text-xs' : ''}`}>{children}</tbody>
         </table>
       </div>
     </div>
@@ -284,6 +539,11 @@ function LearnerPhoto({ learner, onError, className = '' }) {
 
 function AdminDashboardPage({ onLogout }) {
   const [courses, setCourses] = useState([]);
+  const [homepageCourseIds, setHomepageCourseIds] = useState([]);
+  const [homepageCourseSelection, setHomepageCourseSelection] = useState([]);
+  const [homepageCourseQuery, setHomepageCourseQuery] = useState('');
+  const [homepageCoursePage, setHomepageCoursePage] = useState(1);
+  const [savingHomepageCourses, setSavingHomepageCourses] = useState(false);
   const [courseForm, setCourseForm] = useState(emptyCourse);
   const [editingId, setEditingId] = useState(null);
   const [overview, setOverview] = useState({ courses: 0, learners: 0, enrollments: 0, revenue: 0, orders: 0, openSupportTickets: 0, recentActivity: [] });
@@ -292,12 +552,15 @@ function AdminDashboardPage({ onLogout }) {
   const [learners, setLearners] = useState([]);
   const [learnerQuery, setLearnerQuery] = useState('');
   const [enrollments, setEnrollments] = useState([]);
-  const [enrollmentProgress, setEnrollmentProgress] = useState({});
+  const [enrollmentQuery, setEnrollmentQuery] = useState('');
+  const [selectedEnrollmentLearner, setSelectedEnrollmentLearner] = useState(null);
+  const [enrollmentLearnerLoading, setEnrollmentLearnerLoading] = useState(false);
+  const [enrollmentCoursePage, setEnrollmentCoursePage] = useState(1);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [view, setView] = useState('overview');
+  const [view, setView] = useState(getInitialAdminView);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -308,6 +571,7 @@ function AdminDashboardPage({ onLogout }) {
   const [selectedLearnerProfile, setSelectedLearnerProfile] = useState(null);
   const [learnerProfileLoading, setLearnerProfileLoading] = useState(false);
   const learnerSearchInitialized = useRef(false);
+  const enrollmentLearnerRequest = useRef(0);
   const handleLearnerPhotoError = useCallback((photoError) => setError(photoError.message), []);
 
   const refresh = async () => {
@@ -320,17 +584,19 @@ function AdminDashboardPage({ onLogout }) {
       const canManageCatalog = ['owner', 'course_manager'].includes(admin.role);
       const canManageLearners = ['owner', 'course_manager', 'support'].includes(admin.role);
       const canViewEnrollments = ['owner', 'course_manager', 'support', 'finance'].includes(admin.role);
-      const [courseData, overviewData, learnerData, enrollmentData] = await Promise.all([
+      const [courseData, overviewData, learnerData, enrollmentData, homepageCourses] = await Promise.all([
         canManageCatalog ? apiRequest('/api/courses/admin') : Promise.resolve([]),
         apiRequest('/api/admin/overview'),
         canManageLearners ? apiRequest('/api/admin/learners') : Promise.resolve({ learners: [] }),
         canViewEnrollments ? apiRequest('/api/admin/enrollments') : Promise.resolve({ enrollments: [] }),
+        canManageCatalog ? apiRequest('/api/courses/admin/homepage-featured') : Promise.resolve({ courseIds: [] }),
       ]);
       setCourses(courseData);
+      setHomepageCourseIds(homepageCourses.courseIds);
+      setHomepageCourseSelection(homepageCourses.courseIds);
       setOverview(overviewData);
       setLearners(learnerData.learners);
       setEnrollments(enrollmentData.enrollments);
-      setEnrollmentProgress(Object.fromEntries(enrollmentData.enrollments.map((item) => [item.id, item.progress || 0])));
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -338,9 +604,43 @@ function AdminDashboardPage({ onLogout }) {
     }
   };
 
+  const openEnrollmentLearner = async (enrollment) => {
+    if (!enrollment.learnerId) return;
+    const requestId = enrollmentLearnerRequest.current + 1;
+    enrollmentLearnerRequest.current = requestId;
+    setEnrollmentCoursePage(1);
+    setError('');
+    setEnrollmentLearnerLoading(true);
+    setSelectedEnrollmentLearner({
+      learner: { id: enrollment.learnerId, name: enrollment.learnerName, identifier: enrollment.learnerIdentifier },
+      enrollments: null,
+    });
+    try {
+      const details = await apiRequest(`/api/admin/enrollments/learners/${encodeURIComponent(enrollment.learnerId)}`);
+      if (enrollmentLearnerRequest.current === requestId) setSelectedEnrollmentLearner(details);
+    } catch (requestError) {
+      if (enrollmentLearnerRequest.current === requestId) {
+        setSelectedEnrollmentLearner(null);
+        setError(requestError.message);
+      }
+    } finally {
+      if (enrollmentLearnerRequest.current === requestId) setEnrollmentLearnerLoading(false);
+    }
+  };
+
+  const closeEnrollmentLearner = () => {
+    enrollmentLearnerRequest.current += 1;
+    setSelectedEnrollmentLearner(null);
+    setEnrollmentLearnerLoading(false);
+  };
+
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(ADMIN_VIEW_KEY, view);
+  }, [view]);
 
   useEffect(() => {
     const updateScrollState = () => {
@@ -395,6 +695,10 @@ function AdminDashboardPage({ onLogout }) {
       setCourses((current) => editingId
         ? current.map((course) => course.id === editingId ? savedCourse : course)
         : [...current, savedCourse]);
+      if (savedCourse.status !== 'published') {
+        setHomepageCourseIds((current) => current.filter((id) => id !== savedCourse.id));
+        setHomepageCourseSelection((current) => current.filter((id) => id !== savedCourse.id));
+      }
       setCourseForm(emptyCourse);
       setEditingId(null);
       setNotice(editingId ? 'Course updated.' : 'Course created.');
@@ -429,6 +733,8 @@ function AdminDashboardPage({ onLogout }) {
     try {
       await apiRequest(`/api/courses/${course.id}`, { method: 'DELETE' });
       setCourses((current) => current.filter((item) => item.id !== course.id));
+      setHomepageCourseIds((current) => current.filter((id) => id !== course.id));
+      setHomepageCourseSelection((current) => current.filter((id) => id !== course.id));
       setNotice('Course deleted.');
       if (editingId === course.id) {
         setCourseForm(emptyCourse);
@@ -491,24 +797,25 @@ function AdminDashboardPage({ onLogout }) {
     }
   };
 
-  const saveEnrollmentProgress = async (enrollment) => {
-    const progress = Number(enrollmentProgress[enrollment.id]);
-    setError('');
-    try {
-      await apiRequest(`/api/admin/enrollments/${enrollment.id}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ progress }),
-      });
-      setEnrollments((current) => current.map((item) => item.id === enrollment.id ? { ...item, progress } : item));
-      setNotice('Enrollment progress updated.');
-    } catch (requestError) {
-      setError(requestError.message);
-    }
-  };
-
   const filteredCourses = courses.filter((course) =>
     `${course.title} ${course.category} ${course.instructor}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const publishedCourses = courses.filter((course) => course.status === 'published' || !course.status);
+  const filteredHomepageCourses = courses.filter((course) =>
+    `${course.title} ${course.category} ${course.instructor} ${course.level}`
+      .toLowerCase()
+      .includes(homepageCourseQuery.trim().toLowerCase()));
+  const homepageCoursesPerPage = 12;
+  const homepageCoursePageCount = Math.ceil(filteredHomepageCourses.length / homepageCoursesPerPage);
+  const currentHomepageCoursePage = Math.min(homepageCoursePage, Math.max(1, homepageCoursePageCount));
+  const visibleHomepageCourses = filteredHomepageCourses.slice(
+    (currentHomepageCoursePage - 1) * homepageCoursesPerPage,
+    currentHomepageCoursePage * homepageCoursesPerPage,
+  );
+  const selectedHomepageCourses = homepageCourseSelection
+    .map((id) => courses.find((course) => course.id === id))
+    .filter(Boolean);
+  const hasHomepageCourseSelectionChanged = homepageCourseSelection.length !== homepageCourseIds.length
+    || homepageCourseSelection.some((id, index) => id !== homepageCourseIds[index]);
   const coursesPerPage = 12;
   const coursePageCount = Math.ceil(filteredCourses.length / coursesPerPage);
   const currentCoursePage = Math.min(coursePage, Math.max(1, coursePageCount));
@@ -516,6 +823,18 @@ function AdminDashboardPage({ onLogout }) {
     (currentCoursePage - 1) * coursesPerPage,
     currentCoursePage * coursesPerPage,
   );
+  const learnerCourses = selectedEnrollmentLearner?.enrollments || [];
+  const enrollmentCoursesPerPage = 10;
+  const enrollmentCoursePageCount = Math.ceil(learnerCourses.length / enrollmentCoursesPerPage);
+  const currentEnrollmentCoursePage = Math.min(enrollmentCoursePage, Math.max(1, enrollmentCoursePageCount));
+  const visibleEnrollmentCourses = learnerCourses.slice(
+    (currentEnrollmentCoursePage - 1) * enrollmentCoursesPerPage,
+    currentEnrollmentCoursePage * enrollmentCoursesPerPage,
+  );
+  const filteredEnrollments = enrollments.filter((enrollment) =>
+    `${enrollment.learnerName} ${enrollment.learnerIdentifier} ${enrollment.courseTitle}`
+      .toLowerCase()
+      .includes(enrollmentQuery.trim().toLowerCase()));
 
   /* ---------------------------- UI-only helpers --------------------------- */
   const closeCourseDrawer = () => {
@@ -532,7 +851,54 @@ function AdminDashboardPage({ onLogout }) {
     setSidebarOpen(false);
   };
 
+  const toggleHomepageCourse = (courseId) => {
+    setError('');
+    setHomepageCourseSelection((current) => current.includes(courseId)
+      ? current.filter((id) => id !== courseId)
+      : current.length < 3 ? [...current, courseId] : current);
+  };
+
+  const openHomepageCourseSelector = () => {
+    setHomepageCourseSelection(homepageCourseIds);
+    setHomepageCourseQuery('');
+    setHomepageCoursePage(1);
+    setError('');
+    setView('homepage-courses');
+    window.scrollTo({ top: 0 });
+  };
+
+  const closeHomepageCourseSelector = () => {
+    setHomepageCourseSelection(homepageCourseIds);
+    setError('');
+    setView('courses');
+    window.scrollTo({ top: 0 });
+  };
+
+  const saveHomepageCourses = async () => {
+    setError('');
+    setSavingHomepageCourses(true);
+    try {
+      const result = await apiRequest('/api/courses/admin/homepage-featured', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseIds: homepageCourseSelection }),
+      });
+      setHomepageCourseIds(result.courseIds);
+      setHomepageCourseSelection(result.courseIds);
+      setNotice('Homepage courses updated.');
+      setView('courses');
+      window.scrollTo({ top: 0 });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSavingHomepageCourses(false);
+    }
+  };
+
   const goTo = (nextView) => {
+    enrollmentLearnerRequest.current += 1;
+    setSelectedEnrollmentLearner(null);
+    setEnrollmentLearnerLoading(false);
     setView(nextView);
     setSidebarOpen(false);
     window.scrollTo({ top: 0 });
@@ -551,9 +917,20 @@ function AdminDashboardPage({ onLogout }) {
   const showActivity = ['owner', 'finance'].includes(adminRole);
   const toolPanels = panels.filter(([id]) => (rolePanels[adminRole] || []).includes(id));
   const activeToolPanel = view.startsWith('tools:') ? panels.find(([id]) => id === view.slice(6)) : null;
+  useEffect(() => {
+    if (!adminRole) return;
+    const allowedViews = [
+      'overview',
+      ...(showCatalog ? ['courses', 'homepage-courses'] : []),
+      ...(showLearners ? ['learners'] : []),
+      ...(showEnrollments ? ['enrollments'] : []),
+      ...toolPanels.map(([id]) => `tools:${id}`),
+    ];
+    if (!allowedViews.includes(view)) setView('overview');
+  }, [adminRole, showCatalog, showLearners, showEnrollments, toolPanels, view]);
   const viewTitle = activeToolPanel
     ? activeToolPanel[1]
-    : { overview: 'Dashboard', courses: 'Courses', learners: 'Learners', enrollments: 'Enrollments' }[view];
+    : { overview: 'Dashboard', courses: 'Courses', 'homepage-courses': 'Homepage courses', learners: 'Learners', enrollments: 'Enrollments' }[view];
   const formatCount = (value) => Number(value || 0).toLocaleString('en-IN');
   const recentActivityPageSize = 4;
   const recentActivityPageCount = Math.ceil(overview.recentActivity.length / recentActivityPageSize);
@@ -616,7 +993,7 @@ function AdminDashboardPage({ onLogout }) {
         <nav aria-label="Admin navigation" className="flex-1 overflow-hidden px-3 py-5">
           <NavGroup collapsed={sidebarCollapsed} label="Workspace">
             <NavItem active={view === 'overview'} collapsed={sidebarCollapsed} icon={LayoutDashboard} label="Dashboard" onClick={() => goTo('overview')} />
-            {showCatalog && <NavItem active={view === 'courses'} collapsed={sidebarCollapsed} count={courses.length} icon={BookOpen} label="Courses" onClick={() => goTo('courses')} />}
+            {showCatalog && <NavItem active={view === 'courses' || view === 'homepage-courses'} collapsed={sidebarCollapsed} count={courses.length} icon={BookOpen} label="Courses" onClick={() => goTo('courses')} />}
             {showLearners && <NavItem active={view === 'learners'} collapsed={sidebarCollapsed} count={overview.learners} icon={Users} label="Learners" onClick={() => goTo('learners')} />}
             {showEnrollments && <NavItem active={view === 'enrollments'} collapsed={sidebarCollapsed} count={overview.enrollments} icon={ClipboardList} label="Enrollments" onClick={() => goTo('enrollments')} />}
           </NavGroup>
@@ -694,10 +1071,11 @@ function AdminDashboardPage({ onLogout }) {
 
         <div aria-hidden="true" className="h-[96px] shrink-0 max-[720px]:h-[78px]" />
 
-        <main className={`w-full px-4 sm:px-6 lg:px-8 ${view === 'overview' ? 'space-y-4 py-4 lg:py-5' : view === 'courses' ? 'space-y-3 py-3 lg:py-4' : 'space-y-6 py-6 lg:py-8'}`}>
+        <main aria-busy={loading} className={`w-full px-4 sm:px-6 lg:px-8 ${view === 'overview' ? 'space-y-4 py-4 lg:py-5' : view === 'courses' ? 'space-y-3 py-3 lg:py-4' : 'space-y-6 py-6 lg:py-8'}`}>
           {error && <Banner onDismiss={() => setError('')} tone="error">{error}</Banner>}
           {notice && <Banner onDismiss={() => setNotice('')} tone="success">{notice}</Banner>}
 
+          <div className={loading ? 'hidden' : 'contents'}>
           {/* ------------------------------ Overview ------------------------------ */}
           {view === 'overview' && (
             <>
@@ -791,8 +1169,12 @@ function AdminDashboardPage({ onLogout }) {
           {view === 'courses' && showCatalog && (
             <>
               <PageHeader
-                actions={<button className={buttonClass} onClick={openNewCourse} type="button"><Plus size={16} /> Add course</button>}
-                description="Create, edit and publish the courses in your catalog."
+                actions={
+                  <>
+                    <button className={softButtonClass} onClick={openHomepageCourseSelector} type="button"><Plus size={16} /> Add course to home page</button>
+                    <button className={buttonClass} onClick={openNewCourse} type="button"><Plus size={16} /> Add course</button>
+                  </>
+                }
                 title="Course Management"
               />
               <div>
@@ -887,22 +1269,153 @@ function AdminDashboardPage({ onLogout }) {
             </>
           )}
 
+          {view === 'homepage-courses' && showCatalog && (
+            <div className="space-y-5">
+              <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    aria-label="Back to course management"
+                    className="grid size-10 shrink-0 place-items-center border-0 bg-transparent p-0 text-slate-600 transition hover:text-violet-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-500/20"
+                    onClick={closeHomepageCourseSelector}
+                    title="Back to course management"
+                    type="button"
+                  >
+                    <ChevronFirst aria-hidden="true" size={28} strokeWidth={1} />
+                  </button>
+                  <div className="min-w-0">
+                    <h1 className="m-0 font-[Manrope,sans-serif] text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">Add courses to home page</h1>
+                  </div>
+                </div>
+                <button
+                  className={buttonClass}
+                  disabled={savingHomepageCourses || !hasHomepageCourseSelectionChanged || !homepageCourseSelection.every((id) => publishedCourses.some((course) => course.id === id))}
+                  onClick={saveHomepageCourses}
+                  type="button"
+                >
+                  {savingHomepageCourses ? 'Saving…' : 'Save homepage courses'}
+                </button>
+              </header>
+
+              <label className="relative ml-auto block w-full sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  aria-label="Search courses to add to home page"
+                  className={`${inputClass} !rounded-none pl-9`}
+                  onChange={(event) => {
+                    setHomepageCourseQuery(event.target.value);
+                    setHomepageCoursePage(1);
+                  }}
+                  placeholder="Search title, category or instructor"
+                  type="search"
+                  value={homepageCourseQuery}
+                />
+              </label>
+
+              <section aria-label="Course catalog for homepage selection" className="overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm">
+                {visibleHomepageCourses.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[1050px] border-collapse text-left text-sm">
+                      <thead className="bg-slate-100 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                        <tr>
+                          <th className="border-b border-r border-slate-200 px-3 py-3 text-center">Select</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3">Course</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3">Category</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3">Level</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3">Instructor</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3">Duration</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3 text-right">Lessons</th>
+                          <th className="border-b border-r border-slate-200 px-3 py-3 text-right">Price</th>
+                          <th className="border-b border-slate-200 px-3 py-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleHomepageCourses.map((course) => {
+                          const selected = homepageCourseSelection.includes(course.id);
+                          const isPublished = course.status === 'published' || !course.status;
+                          const canSelect = selected || (isPublished && homepageCourseSelection.length < 3);
+                          return (
+                            <tr className="bg-white transition-colors hover:bg-slate-50" key={course.id}>
+                              <td className="border-b border-r border-slate-200 px-3 py-2.5 text-center">
+                                <input
+                                  aria-label={`${selected ? 'Remove' : 'Add'} ${course.title} ${selected ? 'from' : 'to'} homepage`}
+                                  checked={selected}
+                                  className="size-4 cursor-pointer align-middle accent-violet-600 disabled:cursor-not-allowed"
+                                  disabled={!canSelect}
+                                  onChange={() => toggleHomepageCourse(course.id)}
+                                  type="checkbox"
+                                />
+                              </td>
+                              <td className="max-w-[280px] border-b border-r border-slate-200 px-3 py-2.5">
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <img alt="" className="size-10 shrink-0 bg-slate-100 object-cover" loading="lazy" src={course.image} />
+                                  <span className="min-w-0">
+                                    <span className="block truncate font-semibold text-slate-900" title={course.title}>{course.title}</span>
+                                    <span className="block truncate text-xs text-slate-500">ID: {course.id}</span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="border-b border-r border-slate-200 px-3 py-2.5 text-slate-700">{course.category || '—'}</td>
+                              <td className="border-b border-r border-slate-200 px-3 py-2.5 text-slate-700">{course.level || '—'}</td>
+                              <td className="max-w-48 truncate border-b border-r border-slate-200 px-3 py-2.5 text-slate-700" title={course.instructor}>{course.instructor || '—'}</td>
+                              <td className="whitespace-nowrap border-b border-r border-slate-200 px-3 py-2.5 text-slate-700">{course.duration || '—'}</td>
+                              <td className="border-b border-r border-slate-200 px-3 py-2.5 text-right tabular-nums text-slate-700">{course.lessons ?? '—'}</td>
+                              <td className="whitespace-nowrap border-b border-r border-slate-200 px-3 py-2.5 text-right tabular-nums text-slate-700">₹{Number(course.price).toLocaleString('en-IN')}</td>
+                              <td className="border-b border-slate-200 px-3 py-2.5">
+                                <Badge tone={statusTone(course.status || 'published')}>{course.status || 'published'}</Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    description={courses.length ? 'Try another search term.' : 'Add courses to your catalog before selecting homepage courses.'}
+                    icon={BookOpen}
+                    title={courses.length ? 'No matching courses' : 'No courses available'}
+                  />
+                )}
+
+                {homepageCoursePageCount > 1 && (
+                  <nav aria-label="Homepage course pages" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+                    <button
+                      className={`${softButtonClass} !px-2.5 !py-1.5`}
+                      disabled={currentHomepageCoursePage === 1}
+                      onClick={() => setHomepageCoursePage((page) => Math.max(1, page - 1))}
+                      type="button"
+                    >
+                      <ChevronLeft size={15} /> Previous
+                    </button>
+                    <span className="text-center text-xs font-medium text-slate-500">
+                      Showing {(currentHomepageCoursePage - 1) * homepageCoursesPerPage + 1}–{Math.min(currentHomepageCoursePage * homepageCoursesPerPage, filteredHomepageCourses.length)} of {filteredHomepageCourses.length} courses · Page {currentHomepageCoursePage} of {homepageCoursePageCount}
+                    </span>
+                    <button
+                      className={`${softButtonClass} !px-2.5 !py-1.5`}
+                      disabled={currentHomepageCoursePage === homepageCoursePageCount}
+                      onClick={() => setHomepageCoursePage((page) => Math.min(homepageCoursePageCount, page + 1))}
+                      type="button"
+                    >
+                      Next <ChevronRight size={15} />
+                    </button>
+                  </nav>
+                )}
+              </section>
+            </div>
+          )}
+
           {/* ------------------------------- Learners ------------------------------- */}
           {view === 'learners' && showLearners && (
-            <>
+            <div className="space-y-4">
               <PageHeader
-                description="Search accounts and manage learner access."
-                title="Learners"
-              />
-
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="w-full sm:w-72">
-                  <label className="relative block flex-1 sm:w-72">
+                actions={
+                  <label className="relative block w-full sm:w-72">
                     <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input aria-label="Search learners" className={`${inputClass} pl-9`} onChange={(event) => setLearnerQuery(event.target.value)} placeholder="Search name or email" value={learnerQuery} />
                   </label>
-                </div>
-              </div>
+                }
+                title="Learners"
+              />
 
               <div className="overflow-hidden border border-slate-200 bg-white">
                 <div className="overflow-x-auto">
@@ -917,8 +1430,22 @@ function AdminDashboardPage({ onLogout }) {
                         <th className="border-b border-slate-200 px-4 py-3 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white">
-                      {learners.map((learner) => (
+                    <tbody aria-busy={loading} className="bg-white">
+                      {loading ? Array.from({ length: 5 }, (_, index) => (
+                        <tr aria-hidden="true" className="animate-pulse" key={`learner-skeleton-${index}`}>
+                          <td className="border-b border-r border-slate-200 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="size-8 shrink-0 rounded-full bg-slate-200" />
+                              <span className="h-3 w-28 rounded bg-slate-200" />
+                            </div>
+                          </td>
+                          <td className="border-b border-r border-slate-200 px-4 py-3"><span className="block h-3 w-36 rounded bg-slate-200" /></td>
+                          <td className="border-b border-r border-slate-200 px-4 py-3"><span className="block h-3 w-24 rounded bg-slate-200" /></td>
+                          <td className="border-b border-r border-slate-200 px-4 py-3"><span className="block h-3 w-20 rounded bg-slate-200" /></td>
+                          <td className="border-b border-r border-slate-200 px-4 py-3"><span className="block h-5 w-16 rounded-full bg-slate-200" /></td>
+                          <td className="border-b border-slate-200 px-4 py-3"><span className="ml-auto block h-3 w-12 rounded bg-slate-200" /></td>
+                        </tr>
+                      )) : learners.map((learner) => (
                         <tr className="align-middle transition hover:bg-slate-50" key={learner.id}>
                           <td className="border-b border-r border-slate-200 px-4 py-3">
                             <div className="flex items-center gap-3">
@@ -944,7 +1471,7 @@ function AdminDashboardPage({ onLogout }) {
                           </td>
                           <td className="border-b border-slate-200 px-4 py-3 text-right">
                             <button
-                              className={`${learner.status === 'suspended' ? softButtonClass : dangerButtonClass} !px-3 !py-1.5 !text-[11px] !font-semibold`}
+                              className={`border-0 bg-transparent p-0 text-[11px] font-semibold shadow-none transition focus-visible:outline-2 focus-visible:outline-offset-2 ${learner.status === 'suspended' ? 'text-slate-600 hover:text-slate-900 focus-visible:outline-slate-500' : 'text-rose-600 hover:text-rose-800 focus-visible:outline-rose-500'}`}
                               onClick={() => changeLearnerStatus(learner)}
                               type="button"
                             >
@@ -957,54 +1484,180 @@ function AdminDashboardPage({ onLogout }) {
                   </table>
                 </div>
 
-                {!learners.length && <div className="px-4 py-10"><EmptyState description="Try a different name or email." icon={Users} title="No learner accounts found." /></div>}
+                {!loading && !learners.length && <div className="px-4 py-10"><EmptyState description="Try a different name or email." icon={Users} title="No learner accounts found." /></div>}
               </div>
-            </>
+            </div>
           )}
 
           {/* ------------------------------ Enrollments ------------------------------ */}
           {view === 'enrollments' && showEnrollments && (
             <>
-              <PageHeader
-                actions={<Badge tone="violet">{enrollments.length} records</Badge>}
-                description="Review who is learning what, and keep progress up to date."
-                eyebrow="Learning operations"
-                title="Enrollments"
-              />
-              <Card bodyClassName="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-                    <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      <tr><th className="px-5 py-3">Learner</th><th className="px-4 py-3">Course</th><th className="px-4 py-3">Progress</th><th className="px-4 py-3">Enrolled</th><th className="px-5 py-3 text-right">Action</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {enrollments.map((enrollment) => {
-                        const draft = enrollmentProgress[enrollment.id] ?? 0;
-                        const percent = Math.min(100, Math.max(0, Number(draft) || 0));
-                        const unchanged = Number(draft) === Number(enrollment.progress || 0);
-                        return (
-                          <tr className="transition hover:bg-slate-50/70" key={enrollment.id}>
-                            <td className="px-5 py-3"><strong className="block font-semibold text-slate-900">{enrollment.learnerName}</strong><span className="text-xs text-slate-500">{enrollment.learnerIdentifier || ''}</span></td>
-                            <td className="px-4 py-3 text-slate-700">{enrollment.courseTitle}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div aria-hidden="true" className="h-2 w-28 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${percent}%` }} /></div>
-                                <div className="relative">
-                                  <input aria-label={`Progress for ${enrollment.learnerName}`} className={`${inputClass} w-20 pr-6 text-right`} max="100" min="0" onChange={(event) => setEnrollmentProgress((current) => ({ ...current, [enrollment.id]: event.target.value }))} type="number" value={draft} />
-                                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">%</span>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-4 py-3 text-slate-600">{enrollment.createdAt ? new Date(enrollment.createdAt).toLocaleDateString() : '—'}</td>
-                            <td className="px-5 py-3 text-right"><button className={`${buttonClass} !px-3 !py-1.5 !text-xs`} disabled={unchanged} onClick={() => saveEnrollmentProgress(enrollment)} type="button">Save</button></td>
+              {selectedEnrollmentLearner ? (
+                <section className="space-y-7">
+                  <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <button
+                        aria-label="Back to enrollments"
+                        className="grid size-10 shrink-0 place-items-center border-0 bg-transparent p-0 text-slate-600 transition hover:text-violet-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-500/20"
+                        onClick={closeEnrollmentLearner}
+                        title="Back to enrollments"
+                        type="button"
+                      >
+                        <ChevronFirst aria-hidden="true" size={28} strokeWidth={1} />
+                      </button>
+                      <p className="m-0 min-w-0 truncate text-sm text-blue-600">{selectedEnrollmentLearner.learner?.identifier || 'Learner details'}</p>
+                    </div>
+                    <div className="shrink-0">
+                      <span className="text-sm text-slate-500">
+                        {enrollmentLearnerLoading
+                          ? 'Loading course records…'
+                          : `${selectedEnrollmentLearner.enrollments?.length ?? 0} course${selectedEnrollmentLearner.enrollments?.length === 1 ? '' : 's'} enrolled`}
+                      </span>
+                    </div>
+                  </header>
+
+                  {enrollmentLearnerLoading ? (
+                    <p className="m-0 py-12 text-center text-sm text-slate-500">Loading course enrollments…</p>
+                  ) : selectedEnrollmentLearner.enrollments?.length ? (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[820px] table-fixed border-collapse text-left text-sm">
+                          <colgroup>
+                            <col className="w-[27%]" />
+                            <col className="w-[23%]" />
+                            <col className="w-[18%]" />
+                            <col className="w-[16%]" />
+                            <col className="w-[16%]" />
+                          </colgroup>
+                          <thead className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            <tr>
+                              <th className="px-4 py-2 pl-0">Course</th>
+                              <th className="px-4 py-2">Instructor</th>
+                              <th className="px-4 py-2">Date enrolled</th>
+                              <th className="px-4 py-2">Amount paid</th>
+                              <th className="px-4 py-2 pr-0">Course progress</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {visibleEnrollmentCourses.map((item) => {
+                              const progress = Math.min(100, Math.max(0, Number(item.progress) || 0));
+                              return (
+                                <tr className="transition hover:bg-slate-50/70" key={item.courseId}>
+                                  <td className="px-4 py-4 pl-0 font-semibold text-slate-900">{item.courseTitle}</td>
+                                  <td className="px-4 py-4 text-slate-600">{item.instructorName || 'Not specified'}</td>
+                                  <td className="px-4 py-4 text-slate-600">{formatAdminDate(item.purchasedAt || item.createdAt)}</td>
+                                  <td className="px-4 py-4 font-medium text-emerald-700">{formatAdminCurrency(item.purchasePrice, item.currency)}</td>
+                                  <td className="px-4 py-4 pr-0">
+                                    <div className="flex items-center gap-2.5">
+                                      <div aria-label={`${progress}% complete`} className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-slate-100" role="img">
+                                        <div className="h-full rounded-full bg-violet-500" style={{ width: `${progress}%` }} />
+                                      </div>
+                                      <span className="text-xs tabular-nums text-slate-600">{progress}%</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {enrollmentCoursePageCount > 1 && (
+                        <nav aria-label="Learner course pages" className="flex items-center justify-between border-t border-slate-200 pt-3">
+                          <button
+                            aria-label="Previous course page"
+                            className={`${softButtonClass} !px-2.5 !py-1.5`}
+                            disabled={currentEnrollmentCoursePage === 1}
+                            onClick={() => setEnrollmentCoursePage((page) => Math.max(1, page - 1))}
+                            type="button"
+                          >
+                            <ChevronLeft size={15} /> Previous
+                          </button>
+                          <span className="text-xs font-medium text-slate-500">
+                            Showing {(currentEnrollmentCoursePage - 1) * enrollmentCoursesPerPage + 1}–{Math.min(currentEnrollmentCoursePage * enrollmentCoursesPerPage, learnerCourses.length)} of {learnerCourses.length} courses · Page {currentEnrollmentCoursePage} of {enrollmentCoursePageCount}
+                          </span>
+                          <button
+                            aria-label="Next course page"
+                            className={`${softButtonClass} !px-2.5 !py-1.5`}
+                            disabled={currentEnrollmentCoursePage === enrollmentCoursePageCount}
+                            onClick={() => setEnrollmentCoursePage((page) => Math.min(enrollmentCoursePageCount, page + 1))}
+                            type="button"
+                          >
+                            Next <ChevronRight size={15} />
+                          </button>
+                        </nav>
+                      )}
+                    </>
+                  ) : (
+                    <EmptyState description="This learner has no course enrollment records." icon={ClipboardList} title="No courses found." />
+                  )}
+                </section>
+              ) : (
+                <div className="space-y-4">
+                  <PageHeader
+                    actions={
+                      <label className="relative block w-full sm:w-72">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                        <input
+                          aria-label="Search enrollments"
+                          className={`${inputClass} pl-9`}
+                          onChange={(event) => setEnrollmentQuery(event.target.value)}
+                          placeholder="Search learner or course"
+                          value={enrollmentQuery}
+                        />
+                      </label>
+                    }
+                    title="Enrollments"
+                  />
+                  <div className="overflow-hidden border border-slate-200 bg-white">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+                        <thead className="bg-white text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          <tr>
+                            <th className="border-b border-r border-slate-200 px-4 py-3">Learner</th>
+                            <th className="border-b border-r border-slate-200 px-4 py-3">Email</th>
+                            <th className="border-b border-slate-200 px-4 py-3">Course</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="bg-white">
+                          {filteredEnrollments.map((enrollment) => (
+                            <tr className="align-middle transition hover:bg-slate-50" key={enrollment.id}>
+                              <td className="border-b border-r border-slate-200 px-4 py-2">
+                                <div className="flex items-center gap-2.5">
+                                  {showLearners && enrollment.learnerId
+                                    ? <LearnerPhoto className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 text-[10px] font-bold text-slate-700" learner={{ id: enrollment.learnerId, name: enrollment.learnerName }} onError={handleLearnerPhotoError} />
+                                    : <Avatar name={enrollment.learnerName} />}
+                                  {enrollment.learnerId ? (
+                                    <button className="border-0 bg-transparent p-0 text-left font-medium text-blue-600 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" onClick={() => openEnrollmentLearner(enrollment)} type="button">
+                                      {enrollment.learnerName}
+                                    </button>
+                                  ) : <span className="font-medium text-slate-800">{enrollment.learnerName}</span>}
+                                </div>
+                              </td>
+                              <td className="border-b border-r border-slate-200 px-4 py-2 whitespace-nowrap text-blue-600">
+                                {enrollment.learnerIdentifier?.includes('@')
+                                  ? <a className="hover:text-blue-700 hover:underline" href={`mailto:${enrollment.learnerIdentifier}`}>{enrollment.learnerIdentifier}</a>
+                                  : 'Not available'}
+                              </td>
+                              <td className="border-b border-slate-200 px-4 py-2 font-medium text-slate-800">
+                                {enrollment.courseTitle}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!filteredEnrollments.length && (
+                      <div className="px-4 py-10">
+                        <EmptyState
+                          description={enrollments.length ? 'Try another learner name, email or course.' : 'Enrollments will appear here once learners join a course.'}
+                          icon={ClipboardList}
+                          title={enrollments.length ? 'No matching enrollments.' : 'No enrollment records yet.'}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {!enrollments.length && <EmptyState description="Enrollments will appear here once learners join a course." icon={ClipboardList} title="No enrollment records yet." />}
-              </Card>
+              )}
             </>
           )}
 
@@ -1018,6 +1671,8 @@ function AdminDashboardPage({ onLogout }) {
               panel={view.slice(6)}
             />
           )}
+          </div>
+          {loading && <AdminSectionSkeleton view={view} />}
 
         </main>
       </div>
@@ -1215,9 +1870,15 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [panelLoading, setPanelLoading] = useState(true);
   const [role, setRole] = useState('');
   const [analytics, setAnalytics] = useState(null);
-  const [filters, setFilters] = useState({ from: '', to: '', courseId: '', category: '' });
+  const [trendPeriod, setTrendPeriod] = useState('month');
+  const [filters, setFilters] = useState(() => {
+    const range = getAnalyticsPeriodRange('month');
+    return { from: formatDateInput(range.from), to: formatDateInput(range.to), courseId: '', category: '' };
+  });
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [sections, setSections] = useState([]);
   const [selectedSectionId, setSelectedSectionId] = useState('');
@@ -1257,31 +1918,47 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
         const allowed = rolePanels[admin.role] || [];
         if (!allowed.includes(panel)) onPanelChange(allowed[0] || '');
       })
-      .catch((requestError) => setError(requestError.message));
+      .catch((requestError) => {
+        setError(requestError.message);
+        setPanelLoading(false);
+      });
   }, []);
 
   useEffect(() => {
-    if (!role || !visiblePanels.includes(panel)) return;
-    if (panel === 'analytics') loadAnalytics();
-    if (panel === 'learning' && selectedCourseId) loadSections(selectedCourseId);
+    if (!role) return undefined;
+    if (!visiblePanels.includes(panel)) {
+      setPanelLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    const requests = [];
+    setPanelLoading(true);
+    if (panel === 'analytics') requests.push(loadAnalytics());
+    if (panel === 'learning' && selectedCourseId) requests.push(loadSections(selectedCourseId));
     if (panel === 'learners') {
       setLearnerResults(learners);
-      loadEnrollments();
+      requests.push(loadEnrollments());
     }
     if (panel === 'payments') {
-      if (['owner', 'finance'].includes(role)) loadOrders();
-      if (['owner', 'course_manager', 'finance'].includes(role)) loadCoupons();
-      if (['owner', 'course_manager'].includes(role)) loadPromotions();
+      if (['owner', 'finance'].includes(role)) requests.push(loadOrders());
+      if (['owner', 'course_manager', 'finance'].includes(role)) requests.push(loadCoupons());
+      if (['owner', 'course_manager'].includes(role)) requests.push(loadPromotions());
     }
-    if (panel === 'content') loadContent();
+    if (panel === 'content') requests.push(loadContent());
     if (panel === 'support') {
-      if (['owner', 'support'].includes(role)) loadTickets();
-      loadReviews();
+      if (['owner', 'support'].includes(role)) requests.push(loadTickets());
+      requests.push(loadReviews());
     }
     if (panel === 'settings') {
-      loadSettings();
-      if (role === 'owner') loadAdmins();
+      requests.push(loadSettings());
+      if (role === 'owner') requests.push(loadAdmins());
     }
+
+    Promise.all(requests).finally(() => {
+      if (active) setPanelLoading(false);
+    });
+    return () => { active = false; };
   }, [panel, role]);
 
   useEffect(() => {
@@ -1318,9 +1995,17 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
     }
   }
 
-  async function loadAnalytics() {
-    const query = new URLSearchParams(Object.fromEntries(Object.entries(filters).filter(([, value]) => value)));
+  async function loadAnalytics(nextFilters = filters) {
+    const query = new URLSearchParams(Object.fromEntries(Object.entries(nextFilters).filter(([, value]) => value)));
     try { setAnalytics(await apiRequest(`/api/admin/platform/analytics?${query}`)); } catch (requestError) { setError(requestError.message); }
+  }
+  function changeTrendPeriod(period) {
+    setTrendPeriod(period);
+    if (period === 'custom') return;
+    const range = getAnalyticsPeriodRange(period);
+    const nextFilters = { ...filters, from: formatDateInput(range.from), to: formatDateInput(range.to) };
+    setFilters(nextFilters);
+    loadAnalytics(nextFilters);
   }
   function exportReport(type) {
     const query = new URLSearchParams({ type, ...Object.fromEntries(Object.entries(filters).filter(([, value]) => value)) });
@@ -1510,71 +2195,171 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
   const selectedCourse = courses.find((course) => String(course.id) === String(selectedCourseId));
   const categories = [...new Set(courses.map((course) => course.category).filter(Boolean))];
 
-  const roleLabel = roleLabels[role] || 'Loading role…';
   const activePanel = panels.find(([id]) => id === panel);
+
+  const enrollmentTrend = buildTrendSeries(analytics?.enrollmentTrend || [], 'enrollments', trendPeriod, filters.from, filters.to);
+  const revenueTrend = buildTrendSeries(analytics?.revenueTrend || [], 'amount', trendPeriod, filters.from, filters.to);
+  const maxEnrollmentCount = Math.max(1, ...enrollmentTrend.map((point) => point.value));
+  const maxRevenueAmount = Math.max(1, ...revenueTrend.map((point) => point.value));
+  function renderTrendChart(items, maxValue, colorClass, formatValue, metricLabel) {
+    const total = items.reduce((sum, item) => sum + item.value, 0);
+    const average = items.length ? total / items.length : 0;
+    const formatAverage = metricLabel === 'revenue'
+      ? formatValue(Math.round(average))
+      : average.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    const peak = items.reduce((highest, item) => item.value > highest.value ? item : highest, { value: 0, label: '—', detail: 'No activity' });
+    const dailySeries = trendPeriod === 'month' || (trendPeriod === 'custom' && items.length <= 62);
+    const slotClass = dailySeries ? 'w-5 shrink-0' : 'min-w-[34px] flex-1';
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-px overflow-hidden border border-slate-200 bg-slate-200">
+          <div className="bg-white px-2.5 py-1.5">
+            <span className="block text-[11px] leading-4 text-slate-500">Total</span>
+            <strong className="block font-[Manrope,sans-serif] text-base font-bold leading-5 text-slate-900">{formatValue(total)}</strong>
+          </div>
+          <div className="bg-white px-2.5 py-1.5">
+            <span className="block text-[11px] leading-4 text-slate-500">Average per {dailySeries ? 'day' : 'month'}</span>
+            <strong className="block font-[Manrope,sans-serif] text-base font-bold leading-5 text-slate-900">{formatAverage}</strong>
+          </div>
+          <div className="bg-white px-2.5 py-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <span className="block text-[11px] leading-4 text-slate-500">Peak</span>
+              <span className="truncate text-right text-[10px] leading-4 text-slate-500" title={peak.detail}>{peak.detail}</span>
+            </div>
+            <strong className="block font-[Manrope,sans-serif] text-base font-bold leading-5 text-slate-900">{formatValue(peak.value)}</strong>
+          </div>
+        </div>
+        <div className="min-w-0 overflow-x-auto">
+          <div aria-label={`${metricLabel} trend chart`} className="flex h-40 min-w-full items-end gap-1 border-b border-slate-200 px-1">
+            {items.map((item) => {
+              const title = `${item.detail}: ${formatValue(item.value)} ${metricLabel}`;
+              return (
+                <div aria-label={title} className={`flex h-full flex-col items-center justify-end ${slotClass}`} key={item.key} title={title}>
+                  <div className="flex h-28 w-full items-end justify-center border-b border-slate-100">
+                    <div className={`w-3/5 min-w-[5px] ${colorClass}`} style={{ height: `${item.value > 0 ? Math.max(4, (item.value / maxValue) * 100) : 0}%` }} />
+                  </div>
+                  <span className="mt-1 h-6 text-center text-[10px] leading-4 text-slate-500" title={item.detail}>{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" id="platform-tools">
       <PageHeader
-        actions={<button className={softButtonClass} onClick={() => { onRefresh(); if (panel === 'analytics') loadAnalytics(); }} type="button"><RefreshCw size={14} /> Refresh</button>}
-        description={panelDescriptions[panel]}
-        eyebrow={`Admin workspace · ${roleLabel}`}
         title={activePanel ? activePanel[1] : 'Platform operations'}
       />
       {error && <Banner onDismiss={() => setError('')} tone="error">{error}</Banner>}
       {notice && <Banner onDismiss={() => setNotice('')} tone="success">{notice}</Banner>}
 
+      {panelLoading ? <AdminSectionSkeleton showHeader={false} view={`tools:${panel}`} /> : (
+        <>
       {/* ----------------------------- Reports & analytics ----------------------------- */}
       {panel === 'analytics' && (
         <div className="space-y-6">
-          <Card description="Narrow the reports by date, course or category" title="Filters">
-            <form className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end" onSubmit={(event) => { event.preventDefault(); loadAnalytics(); }}>
-              <Field label="From" onChange={(from) => setFilters({ ...filters, from })} type="date" value={filters.from} />
-              <Field label="To" onChange={(to) => setFilters({ ...filters, to })} type="date" value={filters.to} />
-              <label className={labelClass}>Course<select className={inputClass} onChange={(event) => setFilters({ ...filters, courseId: event.target.value })} value={filters.courseId}><option value="">All courses</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</select></label>
-              <label className={labelClass}>Category<select className={inputClass} onChange={(event) => setFilters({ ...filters, category: event.target.value })} value={filters.category}><option value="">All categories</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
-              <button className={buttonClass} type="submit">Apply filters</button>
-            </form>
-          </Card>
+          <section aria-label="Report filters">
+            <button
+              aria-controls="analytics-filters"
+              aria-expanded={filtersOpen}
+              className={`${softButtonClass} !rounded-none`}
+              onClick={() => setFiltersOpen((open) => !open)}
+              type="button"
+            >
+              <ListFilter size={15} />
+              Filter
+              <ChevronRight className={`transition-transform duration-300 ${filtersOpen ? 'rotate-90' : ''}`} size={14} />
+            </button>
+            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${filtersOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} id="analytics-filters">
+              <div className="min-h-0 overflow-hidden">
+                <form className="mt-4 space-y-3" onSubmit={(event) => { event.preventDefault(); setTrendPeriod('custom'); loadAnalytics(); }}>
+                  <div className="grid grid-cols-1 gap-px overflow-hidden border border-slate-300 bg-slate-200 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <label className="flex min-w-0 items-center justify-between gap-2 bg-white px-2.5 py-2 text-xs font-medium text-slate-600">
+                      <span className="shrink-0">From</span>
+                      <input className="min-w-0 border-0 bg-transparent p-0 text-right text-xs text-slate-900 outline-none focus:ring-0" onChange={(event) => setFilters({ ...filters, from: event.target.value })} type="date" value={filters.from} />
+                    </label>
+                    <label className="flex min-w-0 items-center justify-between gap-2 bg-white px-2.5 py-2 text-xs font-medium text-slate-600">
+                      <span className="shrink-0">To</span>
+                      <input className="min-w-0 border-0 bg-transparent p-0 text-right text-xs text-slate-900 outline-none focus:ring-0" onChange={(event) => setFilters({ ...filters, to: event.target.value })} type="date" value={filters.to} />
+                    </label>
+                    <label className="flex min-w-0 items-center justify-between gap-2 bg-white px-2.5 py-2 text-xs font-medium text-slate-600">
+                      <span className="shrink-0">Course</span>
+                      <select className="min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-xs text-slate-900 outline-none focus:ring-0" onChange={(event) => setFilters({ ...filters, courseId: event.target.value })} value={filters.courseId}>
+                        <option value="">All courses</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+                      </select>
+                    </label>
+                    <label className="flex min-w-0 items-center justify-between gap-2 bg-white px-2.5 py-2 text-xs font-medium text-slate-600">
+                      <span className="shrink-0">Category</span>
+                      <select className="min-w-0 flex-1 border-0 bg-transparent p-0 text-left text-xs text-slate-900 outline-none focus:ring-0" onChange={(event) => setFilters({ ...filters, category: event.target.value })} value={filters.category}>
+                        <option value="">All categories</option>{categories.map((category) => <option key={category}>{category}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="flex justify-end">
+                    <button className={`${buttonClass} !rounded-none`} type="submit">Apply filters</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[['Learners', analytics?.learners], ['Courses', analytics?.courses], ['Enrollments', analytics?.enrollments], ['Orders', analytics?.orders], ['Revenue', `₹${Number(analytics?.revenue || 0).toLocaleString('en-IN')}`]].map(([label, value]) => (
-              <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" key={label}>
-                <span className="text-sm font-medium text-slate-500">{label}</span>
-                <strong className="mt-2 block font-[Manrope,sans-serif] text-2xl font-bold tracking-tight text-slate-900">{value ?? '—'}</strong>
+              <article className="rounded-none border border-slate-200 bg-white px-4 py-3 shadow-sm" key={label}>
+                <span className="text-xs font-medium text-slate-500">{label}</span>
+                <strong className={`mt-1 block font-[Manrope,sans-serif] text-xl font-bold tracking-tight ${label === 'Revenue' ? 'text-emerald-600' : 'text-slate-900'}`}>{value ?? '—'}</strong>
               </article>
             ))}
           </div>
 
+          <div aria-label="Reporting period" className="grid w-fit grid-cols-3 divide-x divide-slate-200 border border-slate-300 bg-white">
+            {[
+              ['month', 'This month'],
+              ['sixMonths', 'Last 6 months'],
+              ['year', 'This year'],
+            ].map(([period, label]) => (
+              <button
+                aria-pressed={trendPeriod === period}
+                className={`min-h-8 px-2.5 py-1 text-[11px] font-semibold transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 ${trendPeriod === period ? 'bg-violet-700 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                key={period}
+                onClick={() => changeTrendPeriod(period)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-2">
-            <Card description="Enrollments over the selected range" title="Enrollment trend">
-              <div className="flex h-44 items-end gap-1.5 border-b border-slate-100">
-                {(analytics?.enrollmentTrend || []).map((item) => <div className="group relative flex-1 rounded-t bg-violet-300 transition hover:bg-violet-600" key={item._id} style={{ height: `${Math.max(4, item.enrollments / Math.max(1, ...analytics.enrollmentTrend.map((point) => point.enrollments)) * 100)}%` }} title={`${item._id}: ${item.enrollments} enrollments`} />)}
-                {!analytics?.enrollmentTrend?.length && <p className="m-0 w-full self-center text-center text-sm text-slate-400">No enrollment activity for this range.</p>}
-              </div>
+            <Card bodyClassName="p-3" className="!rounded-none" description={trendPeriod === 'month' ? 'Daily enrollments for this month' : trendPeriod === 'year' ? 'Monthly enrollments from January to December' : 'Monthly enrollments for the selected period'} title="Enrollment trend">
+              {renderTrendChart(enrollmentTrend, maxEnrollmentCount, 'bg-violet-500', (value) => value.toLocaleString('en-IN'), 'enrollments')}
             </Card>
-            <Card description="Captured sales over the selected range" title="Revenue trend">
-              <div className="flex h-44 items-end gap-1.5 border-b border-slate-100">
-                {(analytics?.revenueTrend || []).map((item) => <div className="flex-1 rounded-t bg-emerald-300 transition hover:bg-emerald-600" key={item._id} style={{ height: `${Math.max(4, item.amount / Math.max(1, ...analytics.revenueTrend.map((point) => point.amount)) * 100)}%` }} title={`${item._id}: ₹${item.amount}`} />)}
-                {!analytics?.revenueTrend?.length && <p className="m-0 w-full self-center text-center text-sm text-slate-400">No captured sales for this range.</p>}
-              </div>
+            <Card bodyClassName="p-3" className="!rounded-none" description={trendPeriod === 'month' ? 'Daily revenue for this month' : trendPeriod === 'year' ? 'Monthly revenue from January to December' : 'Monthly revenue for the selected period'} title="Revenue trend">
+              {renderTrendChart(revenueTrend, maxRevenueAmount, 'bg-emerald-500', (value) => `₹${value.toLocaleString('en-IN')}`, 'revenue')}
             </Card>
           </div>
 
-          <Card description="Download the data as CSV" icon={Download} title="Export reports">
-            <div className="flex flex-wrap gap-2">{['courses', 'learners', 'enrollments', 'orders'].map((type) => <button className={`${softButtonClass} capitalize`} key={type} onClick={() => exportReport(type)} type="button"><Download size={14} />Export {type}</button>)}</div>
-          </Card>
-
           <div className="grid gap-4 xl:grid-cols-2">
-            <DataTable headers={['Course', 'Category', 'Enrollments']} title="Popular courses">
-              {(analytics?.popularCourses || []).map((item) => <tr key={item.courseId}><Cell>{item.title}</Cell><Cell>{item.category}</Cell><Cell>{item.enrollments}</Cell></tr>)}
+            <DataTable className="!rounded-none" compact headers={['Course', 'Category', 'Enrollments']} title="Popular courses">
+              {(analytics?.popularCourses || []).map((item) => <tr key={item.courseId}><Cell className="font-semibold text-slate-900">{item.title}</Cell><Cell>{item.category}</Cell><Cell>{item.enrollments}</Cell></tr>)}
               {!analytics?.popularCourses?.length && <EmptyRow cols={3}>No popular courses in the selected range.</EmptyRow>}
             </DataTable>
-            <DataTable headers={['Learner', 'Email or phone', 'Joined']} title="Recent sign-ups">
-              {(analytics?.recentSignups || []).map((item) => <tr key={item.id}><Cell>{item.name || 'Learner'}</Cell><Cell>{item.identifier}</Cell><Cell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}</Cell></tr>)}
+            <DataTable className="!rounded-none" compact headers={['Learner', 'Email or phone', 'Joined']} title="Recent sign-ups">
+              {(analytics?.recentSignups || []).map((item) => <tr key={item.id}><Cell className="font-semibold text-slate-900">{item.name || 'Learner'}</Cell><Cell className="!text-blue-700">{item.identifier}</Cell><Cell>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}</Cell></tr>)}
               {!analytics?.recentSignups?.length && <EmptyRow cols={3}>No recent sign-ups.</EmptyRow>}
             </DataTable>
           </div>
+
+          <section aria-labelledby="export-reports-title" className="space-y-2">
+            <div>
+              <h2 className="m-0 font-[Manrope,sans-serif] text-base font-bold text-slate-900" id="export-reports-title">Export reports</h2>
+              <p className="m-0 mt-0.5 text-xs text-slate-500">Download the data as CSV</p>
+            </div>
+            <div className="flex flex-wrap gap-2">{['courses', 'learners', 'enrollments', 'orders'].map((type) => <button className={`${softButtonClass} !rounded-none capitalize`} key={type} onClick={() => exportReport(type)} type="button"><Download size={14} />Export {type}</button>)}</div>
+          </section>
         </div>
       )}
 
@@ -1920,6 +2705,8 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
             </Card>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   );

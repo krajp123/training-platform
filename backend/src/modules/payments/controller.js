@@ -23,11 +23,43 @@ async function getLearner(request) {
   return getAuthenticatedUser(request.get('authorization')?.replace(/^Bearer\s+/i, ''));
 }
 
+function allocateOrderCourseAmounts(order) {
+  const items = Array.isArray(order.courseItems) ? order.courseItems : [];
+  if (!items.length) return new Map();
+
+  const amount = Number(order.amount || 0);
+  const totalMinor = Math.max(0, Math.round((Number.isFinite(amount) ? amount : 0) * 100));
+  const weights = items.map((item) => Math.max(0, Number(item.price) || 0));
+  const actualWeightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  const weightTotal = actualWeightTotal || items.length;
+  const allocations = items.map((item, index) => {
+    const weight = actualWeightTotal ? weights[index] : 1;
+    const rawAmount = totalMinor * (weight / weightTotal);
+    return { courseId: item.courseId, amountMinor: Math.floor(rawAmount), remainder: rawAmount % 1 };
+  });
+  let remainder = totalMinor - allocations.reduce((sum, item) => sum + item.amountMinor, 0);
+  const remainderOrder = [...allocations].sort((first, second) => second.remainder - first.remainder);
+  for (let index = 0; remainder > 0; index += 1, remainder -= 1) {
+    remainderOrder[index % remainderOrder.length].amountMinor += 1;
+  }
+  return new Map(allocations.map(({ courseId, amountMinor }) => [courseId, amountMinor / 100]));
+}
+
 async function grantOrderEnrollments(database, userId, order) {
+  const courseAmounts = allocateOrderCourseAmounts(order);
   await database.collection('enrollments').bulkWrite(order.courseIds.map((courseId) => ({
     updateOne: {
       filter: { userId, courseId },
-      update: { $setOnInsert: { userId, courseId, progress: 0, createdAt: new Date(), orderId: order.razorpayOrderId } },
+      update: {
+        $setOnInsert: {
+          userId,
+          courseId,
+          progress: 0,
+          createdAt: new Date(),
+          orderId: order.razorpayOrderId,
+          ...(courseAmounts.has(courseId) ? { purchasePrice: courseAmounts.get(courseId), purchaseCurrency: order.currency || 'INR' } : {}),
+        },
+      },
       upsert: true,
     },
   })));
@@ -40,6 +72,56 @@ async function countCouponUseOnce(database, orderId, couponCode) {
     { $set: { couponCounted: true } },
   );
   if (claim.modifiedCount) await database.collection('coupons').updateOne({ code: couponCode }, { $inc: { usedCount: 1 } });
+}
+
+function hasValidSignature(signature, payload, secret) {
+  if (typeof signature !== 'string' || !/^[a-f\d]{64}$/i.test(signature)) return false;
+  const expected = crypto.createHmac('sha256', secret).update(payload).digest();
+  const supplied = Buffer.from(signature, 'hex');
+  return expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied);
+}
+
+function assertPaymentMatchesOrder(payment, order) {
+  if (payment.order_id !== order.razorpayOrderId
+    || Number(payment.amount) !== Number(order.amountMinor)
+    || payment.currency !== order.currency) {
+    throw makeError('The Razorpay payment does not match this order.', 409);
+  }
+}
+
+async function settleCapturedPayment(database, order, payment) {
+  assertPaymentMatchesOrder(payment, order);
+  if (payment.status !== 'captured' || payment.captured !== true) {
+    throw makeError('Payment has not been captured yet. Please retry confirmation shortly.', 409);
+  }
+
+  const orders = database.collection('orders');
+  if (order.status === 'paid') {
+    if (order.razorpayPaymentId !== payment.id) throw makeError('This order was verified with a different payment.', 409);
+    await grantOrderEnrollments(database, order.userId, order);
+    await countCouponUseOnce(database, order._id, order.couponCode);
+    return;
+  }
+  if (['refund_pending', 'partially_refunded', 'refunded'].includes(order.status)) {
+    if (order.razorpayPaymentId !== payment.id) throw makeError('This order was verified with a different payment.', 409);
+    return;
+  }
+  if (!['pending', 'failed'].includes(order.status)) {
+    throw makeError('This order cannot be verified in its current state.', 409);
+  }
+
+  const result = await orders.updateOne(
+    { _id: order._id, status: order.status },
+    { $set: { status: 'paid', razorpayPaymentId: payment.id, paidAt: new Date(), updatedAt: new Date() }, $unset: { failureReason: '' } },
+  );
+  const settledOrder = result.modifiedCount
+    ? { ...order, status: 'paid', razorpayPaymentId: payment.id }
+    : await orders.findOne({ _id: order._id });
+  if (settledOrder?.status !== 'paid' || settledOrder.razorpayPaymentId !== payment.id) {
+    throw makeError('The order changed while payment was being verified.', 409);
+  }
+  await grantOrderEnrollments(database, settledOrder.userId, settledOrder);
+  await countCouponUseOnce(database, settledOrder._id, settledOrder.couponCode);
 }
 
 export async function createPaymentOrder(request, response, next) {
@@ -84,6 +166,11 @@ export async function createPaymentOrder(request, response, next) {
         : Math.min(applicableSubtotal, coupon.value);
     }
     const amount = Math.max(0, subtotal - discount);
+    const courseItems = courses.map((course) => ({
+      courseId: course.id,
+      title: course.title,
+      price: Number(course.price) || 0,
+    }));
     if (amount === 0) {
       const order = {
         razorpayOrderId: `free_${crypto.randomUUID()}`,
@@ -92,6 +179,7 @@ export async function createPaymentOrder(request, response, next) {
         userName: user.name,
         courseIds,
         courseTitles: courses.map((course) => course.title),
+        courseItems,
         subtotal,
         discount,
         couponCode: coupon?.code || '',
@@ -119,6 +207,9 @@ export async function createPaymentOrder(request, response, next) {
       receipt,
       notes: { userId: String(user._id), courseIds: courseIds.join(',') },
     });
+    if (razorpayOrder.amount !== Math.round(amount * 100) || razorpayOrder.currency !== 'INR') {
+      throw makeError('Razorpay created an order with an unexpected amount or currency.', 502);
+    }
     const order = {
       razorpayOrderId: razorpayOrder.id,
       receipt,
@@ -127,6 +218,7 @@ export async function createPaymentOrder(request, response, next) {
       userName: user.name,
       courseIds,
       courseTitles: courses.map((course) => course.title),
+      courseItems,
       subtotal,
       discount,
       couponCode: coupon?.code || '',
@@ -157,20 +249,12 @@ export async function verifyPaymentSignature(request, response, next) {
       throw makeError('Payment verification data is incomplete.', 400);
     }
 
-    const expected = crypto.createHmac('sha256', secret).update(`${orderId}|${paymentId}`).digest();
-    let supplied;
-    try {
-      supplied = Buffer.from(signature, 'hex');
-    } catch {
-      throw makeError('Payment signature could not be verified.', 400);
-    }
-    if (expected.length !== supplied.length || !crypto.timingSafeEqual(expected, supplied)) {
+    if (!hasValidSignature(signature, `${orderId}|${paymentId}`, secret)) {
       throw makeError('Payment signature could not be verified.', 400);
     }
 
     const database = await initializeCatalog();
-    const orders = database.collection('orders');
-    const order = await orders.findOne({ razorpayOrderId: orderId, userId: user._id });
+    const order = await database.collection('orders').findOne({ razorpayOrderId: orderId, userId: user._id });
     if (!order) throw makeError('Payment order not found for this account.', 404);
     if (order.status === 'paid') {
       if (order.razorpayPaymentId !== paymentId) throw makeError('This order was verified with a different payment.', 409);
@@ -178,24 +262,50 @@ export async function verifyPaymentSignature(request, response, next) {
       await countCouponUseOnce(database, order._id, order.couponCode);
       return response.json({ success: true, message: 'Payment was already verified.' });
     }
-    if (order.status !== 'pending') throw makeError('This order cannot be verified in its current state.', 409);
-
-    const result = await orders.updateOne(
-      { _id: order._id, status: 'pending' },
-      { $set: { status: 'paid', razorpayPaymentId: paymentId, paidAt: new Date(), updatedAt: new Date() } },
-    );
-    if (!result.modifiedCount) {
-      const latest = await orders.findOne({ _id: order._id });
-      if (latest?.status === 'paid' && latest.razorpayPaymentId === paymentId) {
-        await grantOrderEnrollments(database, user._id, latest);
-        await countCouponUseOnce(database, latest._id, latest.couponCode);
-        return response.json({ success: true, message: 'Payment was already verified.' });
-      }
-      throw makeError('The order changed while payment was being verified.', 409);
+    if (!['pending', 'failed'].includes(order.status)) {
+      throw makeError('This order cannot be verified in its current state.', 409);
     }
-    await grantOrderEnrollments(database, user._id, order);
-    await countCouponUseOnce(database, order._id, order.couponCode);
+
+    const razorpay = getRazorpayInstance();
+    let payment = await razorpay.payments.fetch(paymentId);
+    if (payment.id !== paymentId) throw makeError('Razorpay returned a different payment than requested.', 409);
+    assertPaymentMatchesOrder(payment, order);
+    if (payment.status === 'authorized' && payment.captured !== true) {
+      payment = await razorpay.payments.capture(paymentId, Number(order.amountMinor), order.currency);
+    }
+    await settleCapturedPayment(database, order, payment);
     response.json({ success: true, message: 'Payment verified and course access granted.' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleRazorpayWebhook(request, response, next) {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!secret) throw makeError('Razorpay webhook is not configured.', 503);
+    const signature = request.get('x-razorpay-signature');
+    if (!Buffer.isBuffer(request.body)
+      || !hasValidSignature(signature, request.body, secret)) {
+      throw makeError('Razorpay webhook signature could not be verified.', 400);
+    }
+
+    let event;
+    try {
+      event = JSON.parse(request.body.toString('utf8'));
+    } catch (error) {
+      if (error instanceof SyntaxError) throw makeError('Razorpay webhook body must be valid JSON.', 400);
+      throw error;
+    }
+    if (event.event !== 'payment.captured') return response.json({ received: true });
+
+    const payment = event.payload?.payment?.entity;
+    if (!payment?.id || !payment.order_id) throw makeError('Captured payment details are missing from the webhook.', 400);
+    const database = await initializeCatalog();
+    const order = await database.collection('orders').findOne({ razorpayOrderId: payment.order_id });
+    if (!order) throw makeError('The Razorpay order was not found.', 404);
+    await settleCapturedPayment(database, order, payment);
+    response.json({ received: true });
   } catch (error) {
     next(error);
   }
@@ -299,12 +409,16 @@ export async function markPaymentFailed(request, response, next) {
     const orderId = String(request.body?.orderId || '');
     const reason = String(request.body?.reason || 'Payment was not completed.').slice(0, 500);
     const database = await initializeCatalog();
-    const result = await database.collection('orders').updateOne(
-      { razorpayOrderId: orderId, userId: user._id, status: 'pending' },
-      { $set: { status: 'failed', failureReason: reason, updatedAt: new Date() } },
-    );
-    if (!result.modifiedCount) throw makeError('Pending order not found.', 404);
-    response.json({ status: 'failed' });
+    const orders = database.collection('orders');
+    const order = await orders.findOne({ razorpayOrderId: orderId, userId: user._id });
+    if (!order) throw makeError('Payment order not found.', 404);
+    if (order.status === 'pending') {
+      await orders.updateOne(
+        { _id: order._id, status: 'pending' },
+        { $set: { lastPaymentAttemptFailure: reason, lastPaymentAttemptFailedAt: new Date(), updatedAt: new Date() } },
+      );
+    }
+    response.json({ status: order.status });
   } catch (error) {
     next(error);
   }

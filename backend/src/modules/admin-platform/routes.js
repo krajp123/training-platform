@@ -5,7 +5,7 @@ import {
   listAdminEnrollments, listAdminLearners, setEnrollmentProgress, setLearnerStatus,
 } from '../admin-workspace/controller.js';
 import {
-  createContent, createCoupon, createCourseSection, createSupportTicket,
+  createContent, createCoupon, createCourseSection, createPublicSupportTicket, createSupportTicket,
   createLesson, createManualEnrollment, createPromotion, deleteContent, deleteCourseSection,
   createReview, deleteLesson, deletePromotion, exportReport, getAnalytics, importCourses,
   listContent, listCourseSections, listCoupons, listPromotions, listPublicContent,
@@ -18,6 +18,33 @@ import {
 const adminRouter = Router();
 const publicRouter = Router();
 const supportRouter = Router();
+const contactSubmissionWindows = new Map();
+const CONTACT_WINDOW_MS = 15 * 60 * 1000;
+const CONTACT_MAX_SUBMISSIONS = 5;
+
+function limitContactSubmissions(request, response, next) {
+  const now = Date.now();
+  const key = request.ip;
+  const current = contactSubmissionWindows.get(key);
+  const window = current && current.expiresAt > now
+    ? current
+    : { count: 0, expiresAt: now + CONTACT_WINDOW_MS };
+  if (contactSubmissionWindows.size >= 10000) {
+    for (const [ip, entry] of contactSubmissionWindows) {
+      if (entry.expiresAt <= now) contactSubmissionWindows.delete(ip);
+    }
+    if (contactSubmissionWindows.size >= 10000 && !contactSubmissionWindows.has(key)) {
+      return response.status(503).json({ error: 'Support requests are temporarily unavailable. Please try again later.' });
+    }
+  }
+  if (window.count >= CONTACT_MAX_SUBMISSIONS) {
+    return response.status(429).json({ error: 'Too many messages were submitted. Please try again later.' });
+  }
+  window.count += 1;
+  contactSubmissionWindows.set(key, window);
+
+  return next();
+}
 
 async function requireLearner(request, response, next) {
   try {
@@ -75,6 +102,7 @@ publicRouter.get('/courses/:courseId/content', listCourseContent);
 publicRouter.get('/courses/:courseId/reviews', listReviewsPublic);
 publicRouter.post('/coupons/validate', validateCoupon);
 supportRouter.post('/tickets', requireLearner, createSupportTicket);
+supportRouter.post('/contact', limitContactSubmissions, createPublicSupportTicket);
 supportRouter.post('/reviews', requireLearner, createReview);
 
 export { adminRouter, publicRouter, supportRouter };

@@ -233,13 +233,11 @@ function AccountSettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f7f7fa] font-['DM_Sans',_sans-serif] text-[#29283a]">
+    <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#29283a]">
       <Navbar />
-      <main className="mx-auto min-h-[calc(100vh-250px)] max-w-[1120px] px-5 pb-14 pt-8 sm:px-8 lg:px-10">
+      <main className="customer-page-main min-h-[calc(100vh-250px)] pb-14">
         <div className="mb-7">
-          <p className="mb-1 text-xs font-bold uppercase tracking-[.15em] text-[#7A1F2B]">Account</p>
-          <h1 className="m-0 font-[Manrope] text-[clamp(1.9rem,3vw,2.4rem)] font-bold leading-tight tracking-[-.04em]">Account settings</h1>
-          <p className="mb-0 mt-2 text-sm text-[#686674]">Manage your profile, contact details, and sign-in security.</p>
+          <h1 className="customer-page-title">Account Settings</h1>
         </div>
 
         {loading ? (
@@ -268,7 +266,7 @@ function AccountSettingsPage() {
               </div>
             </nav>
 
-            <div className="min-h-[400px] px-1 py-2 sm:px-5 sm:py-4">
+            <div className="min-h-[400px] border-[#b8b7c2] px-1 py-2 sm:px-5 sm:py-4 lg:self-stretch lg:border-l lg:pl-8">
               {error && <p className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</p>}
               {notice && <p className="mb-5 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800" role="status"><Check size={16} />{notice}</p>}
 
@@ -413,7 +411,7 @@ function AccountSettingsPage() {
           </div>
         )}
       </main>
-      <Footer showAccent={false} />
+      <Footer />
     </div>
   );
 }

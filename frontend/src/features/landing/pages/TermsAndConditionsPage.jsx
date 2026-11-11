@@ -27,11 +27,11 @@ const quickFacts = [
 function TermsSection({ id, number, title, children }) {
   return (
     <section id={id} className="scroll-mt-24 border-t border-[#dde2ea] py-10 first:border-t-0 first:pt-0">
-      <h2 className="m-0 mb-4 flex items-baseline gap-3 font-['Source_Serif_4',Georgia,serif] text-[26px] font-semibold leading-tight tracking-[-.01em] text-[#1b2233]">
+      <h2 className="customer-page-section-title mb-4 flex items-baseline gap-3 text-[#1b2233]">
         <span className="w-6 shrink-0 font-['DM_Sans',sans-serif] text-sm font-medium tabular-nums text-[#2347a8]">{number}</span>
         {title}
       </h2>
-      <div className="space-y-4 font-['Source_Serif_4',Georgia,serif] text-[17px] leading-[1.75] text-[#3c4558] sm:pl-9 [&_strong]:font-semibold [&_strong]:text-[#1b2233]">
+      <div className="space-y-4 text-base leading-7 text-[#3c4558] sm:pl-9 [&_strong]:font-semibold [&_strong]:text-[#1b2233]">
         {children}
       </div>
     </section>
@@ -81,24 +81,17 @@ function TermsAndConditionsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9] font-['DM_Sans',_sans-serif] text-[#1b2233]">
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap"
-      />
-
+    <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#1b2233]">
       <Navbar />
 
       <main>
         <section className="border-b border-[#dde2ea] bg-white">
-          <div className="mx-auto grid max-w-[1160px] gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16">
+          <div className="customer-page-container customer-page-vertical-section grid gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-16">
             <div>
-              <h1 className="m-0 font-['Source_Serif_4',Georgia,serif] text-[clamp(2.4rem,5.5vw,3.9rem)] font-bold leading-[1.06] tracking-[-.02em] text-[#1b2233]">
+              <h1 className="customer-page-title text-[#1b2233]">
                 Terms &amp; Conditions
               </h1>
-              <p className="mb-0 mt-5 max-w-[34rem] font-['Source_Serif_4',Georgia,serif] text-lg leading-8 text-[#3c4558]">
+              <p className="customer-page-lead mb-0 max-w-[34rem] text-[#3c4558]">
                 These terms explain the basic rules for accessing and using the SCS Academy website, courses, and learning features.
               </p>
               <p className="mb-0 mt-8 text-sm text-[#5a6275]">
@@ -120,7 +113,7 @@ function TermsAndConditionsPage() {
           </div>
         </section>
 
-        <div className="mx-auto grid max-w-[1160px] gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-20">
+        <div className="customer-page-container customer-page-vertical-section grid gap-10 lg:grid-cols-[230px_minmax(0,1fr)] lg:gap-20">
           <aside className="lg:sticky lg:top-8 lg:h-fit">
             <nav aria-label="Terms and conditions contents">
               <p className="m-0 mb-3 text-sm font-semibold text-[#1b2233]">Contents</p>

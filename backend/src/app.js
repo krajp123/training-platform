@@ -7,9 +7,11 @@ import paymentRoutes from './modules/payments/routes.js';
 import adminAuthRoutes from './modules/admin-auth/routes.js';
 import adminWorkspaceRoutes from './modules/admin-workspace/routes.js';
 import { adminRouter as adminPlatformRoutes, publicRouter as platformContentRoutes, supportRouter } from './modules/admin-platform/routes.js';
+import { handleRazorpayWebhook } from './modules/payments/controller.js';
 
 const app = express();
 
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleRazorpayWebhook);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 

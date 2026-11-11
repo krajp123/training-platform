@@ -22,6 +22,75 @@ export async function listCourses(_request, response, next) {
   }
 }
 
+async function homepageFeaturedCourseIds(database) {
+  const [settings, publishedCourses] = await Promise.all([
+    database.collection('platform_settings').findOne({ _id: 'homepage-featured-courses' }),
+    database.collection('courses')
+      .find({ $or: [{ status: 'published' }, { status: { $exists: false } }] })
+      .sort({ id: 1 })
+      .toArray(),
+  ]);
+  const publishedIds = new Set(publishedCourses.map((course) => course.id));
+  if (Array.isArray(settings?.courseIds)) {
+    return [...new Set(settings.courseIds.filter((id) => publishedIds.has(id)))].slice(0, 3);
+  }
+  return publishedCourses.slice(0, 3).map((course) => course.id);
+}
+
+export async function listHomepageFeaturedCourses(_request, response, next) {
+  try {
+    const database = await initializeCatalog();
+    const courseIds = await homepageFeaturedCourseIds(database);
+    const courses = await database.collection('courses')
+      .find({ id: { $in: courseIds }, $or: [{ status: 'published' }, { status: { $exists: false } }] })
+      .toArray();
+    const coursesById = new Map(courses.map((course) => [course.id, course]));
+    response.json(courseIds.map((id) => coursesById.get(id)).filter(Boolean)
+      .map(({ _id, sections, ...course }) => course));
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAdminHomepageFeaturedCourses(_request, response, next) {
+  try {
+    const database = await initializeCatalog();
+    response.json({ courseIds: await homepageFeaturedCourseIds(database) });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function saveHomepageFeaturedCourses(request, response, next) {
+  try {
+    const { courseIds } = request.body || {};
+    if (!Array.isArray(courseIds) || courseIds.length > 3
+      || courseIds.some((id) => !Number.isSafeInteger(id) || id < 1)
+      || new Set(courseIds).size !== courseIds.length) {
+      return sendError(response, 400, 'Select up to three distinct courses for the homepage.');
+    }
+
+    const database = await initializeCatalog();
+    const publishedCount = await database.collection('courses').countDocuments({
+      id: { $in: courseIds },
+      $or: [{ status: 'published' }, { status: { $exists: false } }],
+    });
+    if (publishedCount !== courseIds.length) {
+      return sendError(response, 400, 'All selected homepage courses must be published.');
+    }
+
+    await database.collection('platform_settings').updateOne(
+      { _id: 'homepage-featured-courses' },
+      { $set: { courseIds, updatedAt: new Date() } },
+      { upsert: true },
+    );
+    await recordAdminAction(request, 'homepage.courses.updated', 'homepage', 'featured-courses', { courseIds });
+    response.json({ courseIds });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listAdminCourses(_request, response, next) {
   try {
     const database = await initializeCatalog();

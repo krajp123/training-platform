@@ -1,5 +1,58 @@
 @import "tailwindcss";
 
+:root {
+  --customer-page-max-width: 72rem;
+  --customer-page-gutter: clamp(1.25rem, 3vw, 2rem);
+  --customer-page-vertical-space: clamp(2rem, 4vw, 2.5rem);
+  --customer-page-title-size: clamp(1.875rem, 2.8vw, 2.5rem);
+}
+
+.customer-page-container {
+  box-sizing: border-box;
+  width: min(100%, var(--customer-page-max-width));
+  margin-inline: auto;
+  padding-inline: var(--customer-page-gutter);
+}
+
+.customer-page-main {
+  box-sizing: border-box;
+  width: min(100%, var(--customer-page-max-width));
+  margin-inline: auto;
+  padding: var(--customer-page-vertical-space) var(--customer-page-gutter);
+}
+
+.customer-page-vertical-section {
+  padding-block: var(--customer-page-vertical-space);
+}
+
+.customer-page-title {
+  margin: 0;
+  font-family: Manrope, sans-serif;
+  font-size: var(--customer-page-title-size);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.customer-page-section-title {
+  margin: 0;
+  font-family: Manrope, sans-serif;
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+
+.customer-page-title--spaced {
+  margin-block-start: 0.75rem;
+}
+
+.customer-page-lead {
+  margin-block-start: 0.75rem;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
 html {
   scroll-behavior: smooth;
 }

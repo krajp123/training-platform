@@ -100,7 +100,7 @@ export async function getAnalytics(request, response, next) {
         { $match: enrollmentFilter },
         { $group: { _id: '$courseId', enrollments: { $sum: 1 } } },
         { $sort: { enrollments: -1 } },
-        { $limit: 10 },
+        { $limit: 5 },
         { $lookup: { from: 'courses', localField: '_id', foreignField: 'id', as: 'course' } },
         { $unwind: { path: '$course', preserveNullAndEmptyArrays: true } },
         { $project: { _id: 0, courseId: '$_id', title: { $ifNull: ['$course.title', 'Deleted course'] }, category: '$course.category', enrollments: 1 } },
@@ -118,7 +118,7 @@ export async function getAnalytics(request, response, next) {
       database.collection('users').find(
         { createdAt: { $gte: from, $lte: to } },
         { projection: { name: 1, identifier: 1, createdAt: 1 } },
-      ).sort({ createdAt: -1 }).limit(10).toArray(),
+      ).sort({ createdAt: -1 }).limit(5).toArray(),
     ]);
 
     response.json({
@@ -754,6 +754,73 @@ export async function createSupportTicket(request, response, next) {
     };
     const result = await database.collection('support_tickets').insertOne(ticket);
     response.status(201).json({ id: String(result.insertedId), subject, status: ticket.status, createdAt: ticket.createdAt });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createPublicSupportTicket(request, response, next) {
+  try {
+    const name = String(request.body?.name || '').trim();
+    const email = String(request.body?.email || '').trim();
+    const body = String(request.body?.body || '').trim();
+    if (!name || name.length > 120 || /[\r\n]/.test(name)) return sendError(response, 400, 'Enter a valid name of up to 120 characters.');
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || /[\r\n]/.test(email)) {
+      return sendError(response, 400, 'Enter a valid email address.');
+    }
+    if (!body || body.length > 10000) return sendError(response, 400, 'Describe your problem in up to 10,000 characters.');
+
+    const database = await initializeCatalog();
+    const platformSettings = await database.collection('platform_settings').findOne({ _id: 'main' });
+    const recipient = String(
+      platformSettings?.values?.supportEmail
+      || process.env.SUPPORT_EMAIL
+      || process.env.ADMIN_EMAIL
+      || process.env.SMTP_USER
+      || '',
+    ).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+      return sendError(response, 503, 'Support email is not configured. Please try again later.');
+    }
+    const mailer = makeMailer();
+    const ticket = {
+      userId: null,
+      userName: name,
+      userEmail: email,
+      subject: 'Website contact request',
+      body,
+      source: 'contact_form',
+      status: 'open',
+      priority: 'normal',
+      notes: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailStatus: 'pending',
+    };
+    const result = await database.collection('support_tickets').insertOne(ticket);
+
+    try {
+      await mailer.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: recipient,
+        replyTo: email,
+        subject: 'New SCS Academy support request',
+        text: `Name: ${name}\nEmail: ${email}\nTicket ID: ${result.insertedId}\n\nProblem:\n${body}`,
+      });
+    } catch (error) {
+      console.error('Support contact email delivery failed:', error);
+      await database.collection('support_tickets').updateOne(
+        { _id: result.insertedId },
+        { $set: { emailStatus: 'failed', updatedAt: new Date() } },
+      );
+      return sendError(response, 503, 'Your request was saved, but we could not email the support team. Please try again later.');
+    }
+
+    await database.collection('support_tickets').updateOne(
+      { _id: result.insertedId },
+      { $set: { emailStatus: 'sent', updatedAt: new Date() } },
+    );
+    response.status(201).json({ id: String(result.insertedId), message: 'Your message has been sent to support.' });
   } catch (error) {
     next(error);
   }

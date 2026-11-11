@@ -80,8 +80,8 @@ function CartPage() {
   return (
     <div className="min-h-screen bg-white font-['DM_Sans',_sans-serif] text-[#29283a]">
       <Navbar />
-      <main className="mx-auto min-h-[calc(100vh-250px)] max-w-[1320px] px-5 pb-12 pt-5 sm:px-8 lg:px-10">
-        <h1 className="m-0 font-[Manrope] text-[clamp(1.9rem,3vw,2.4rem)] font-bold leading-tight tracking-[-.04em] text-[#29283a]">Shopping Cart</h1>
+      <main className="customer-page-main min-h-[calc(100vh-250px)] pb-12">
+        <h1 className="customer-page-title text-[#29283a]">Shopping Cart</h1>
 
         {error && <p className="mb-5 mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</p>}
 
@@ -191,8 +191,7 @@ function CartPage() {
           </section>
         )}
       </main>
-      <div className="mx-auto max-w-[1320px] border-t border-[#e7e5ed] px-5 sm:px-8 lg:px-10" aria-hidden="true" />
-      <Footer showAccent={false} />
+      <Footer />
     </div>
   );
 }

@@ -187,7 +187,7 @@ const topics = [
   },
 ];
 
-const wrap = 'mx-auto w-full max-w-[1080px] px-5 sm:px-8';
+const wrap = 'customer-page-container';
 
 const tools = ['Revit', 'Navisworks', 'AutoCAD', 'BIM 360', 'Dynamo', 'Solibri'];
 
@@ -304,8 +304,8 @@ function BimPage() {
           <div className={`${wrap} border-b border-[#e8eaf0] py-12 sm:py-16`}>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
               <p className="m-0 text-sm text-[#687789]"><a href="/" className="text-[#7A1F2B] no-underline hover:text-[#E97832]">Home</a> / Learn BIM</p>
-              <h1 className="mt-3 font-[Manrope] text-[clamp(2rem,4vw,2.9rem)] font-bold leading-[1.12] tracking-[-.03em] text-[#112e49]">Learn Building Information Modeling, topic by topic.</h1>
-              <p className="mt-4 max-w-xl text-base leading-7 text-[#4b5b6c]">Short, clear lessons on BIM concepts, software, standards and careers. Read them in order or jump straight to what you need.</p>
+              <h1 className="customer-page-title customer-page-title--spaced text-[#112e49]">Learn Building Information Modeling, topic by topic.</h1>
+              <p className="customer-page-lead mt-4 max-w-xl text-[#4b5b6c]">Short, clear lessons on BIM concepts, software, standards and careers. Read them in order or jump straight to what you need.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <a className="inline-flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold text-white no-underline" style={{ background: navbarAccent }} href="#what-is-bim" onClick={(e) => go(e, 'what-is-bim')}>Start learning <ArrowRight size={16} /></a>
                 <a className="inline-flex min-h-11 items-center rounded-lg border border-[#A52A32] bg-white px-5 text-sm font-bold text-[#7A1F2B] no-underline transition-colors hover:border-[#E97832] hover:text-[#E97832]" href="/courses">Explore BIM courses</a>

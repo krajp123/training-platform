@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAdmin, requireAdminRoles } from '../admin-auth/controller.js';
 import {
   downloadLearnerResume, getAdminOverview, getAuditLog, getLearnerAvatar, getLearnerProfile,
-  listAdminEnrollments, listAdminLearners, sendLearnerLoginCode, setEnrollmentProgress, setLearnerStatus,
+  getLearnerEnrollmentDetails, listAdminEnrollments, listAdminLearners, sendLearnerLoginCode, setEnrollmentProgress, setLearnerStatus,
   updateLearnerProfile,
 } from './controller.js';
 
@@ -18,6 +18,7 @@ router.patch('/learners/:id/profile', requireAdminRoles('owner', 'support'), upd
 router.post('/learners/:id/request-login-code', requireAdminRoles('owner', 'support'), sendLearnerLoginCode);
 router.patch('/learners/:id/status', requireAdminRoles('owner', 'support'), setLearnerStatus);
 router.get('/enrollments', requireAdminRoles('owner', 'course_manager', 'finance', 'support'), listAdminEnrollments);
+router.get('/enrollments/learners/:id', requireAdminRoles('owner', 'course_manager', 'finance', 'support'), getLearnerEnrollmentDetails);
 router.patch('/enrollments/:id/progress', requireAdminRoles('owner', 'course_manager'), setEnrollmentProgress);
 router.get('/audit-log', requireAdminRoles('owner'), getAuditLog);
 

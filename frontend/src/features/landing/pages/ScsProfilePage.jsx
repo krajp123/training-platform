@@ -1025,7 +1025,7 @@ function ScsProfilePage({ adminLearnerId = '', adminToken = '', logoSrc = '/imag
               {editing !== 'personal' && (
                 <>
                   <div className="mt-6">
-                    <h1 title={name} className="m-0 flex min-w-0 items-center gap-2 whitespace-nowrap font-[Bricolage_Grotesque,sans-serif] text-[clamp(18px,2.2vw,28px)] font-bold leading-[1.1] tracking-[-0.02em]">
+                    <h1 title={name} className="m-0 flex min-w-0 items-center gap-2 whitespace-nowrap font-[Manrope] text-[clamp(18px,2.2vw,28px)] font-bold leading-[1.1] tracking-[-0.02em]">
                       <span className="truncate">{name}</span>
                       {profile.name && <BadgeCheck size={20} className="fill-[#E97832] text-[#7A1F2B]" aria-label="Verified learner" />}
                     </h1>

@@ -148,7 +148,7 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
     { label: 'Wishlist', icon: Heart, href: '/wishlist' },
     { label: 'Notification', icon: Bell, href: '/dashboard' },
     { label: 'Account Setting', icon: Settings, href: '/account-settings' },
-    { label: 'Payment Method', icon: Wallet, href: '/dashboard' },
+    { label: 'Payment Method', icon: Wallet, href: '/payment-method' },
     { label: 'Purch history', icon: MoreVertical, href: '/orders' },
     { label: 'Help & Support', icon: HelpCircle, href: '/support' },
   ];
@@ -271,7 +271,7 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
                   pointerEvents: profileOpen ? 'auto' : 'none',
                 }}
                 aria-hidden={!profileOpen}
-                inert={!profileOpen}
+                inert={!profileOpen ? '' : undefined}
               >
                   <div id="profile-menu" className="max-h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden border border-[#d9dce5] bg-white shadow-[0_16px_40px_#10101b26]" role="menu" aria-label="Account menu">
                     <div className="flex min-h-[88px] items-center gap-3 border-b border-[#e3e5eb] px-5 py-4">

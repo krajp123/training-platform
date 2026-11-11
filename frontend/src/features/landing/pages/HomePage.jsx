@@ -3,22 +3,13 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, Blocks, BriefcaseBusiness, Check, ChevronDown, Code2, Heart,
-  MessageCircle, Palette, Pause, PhoneCall, Play, Sparkles, Star, UserRoundCheck, Video, Zap,
+  MessageCircle, Palette, PhoneCall, Sparkles, Star, UserRoundCheck, Video, Zap,
 } from 'lucide-react';
 import Navbar from '../components/Navbar.jsx';
 import Footer from '../components/Footer.jsx';
 import { addToCart, getCart, subscribeToCart } from '../../../services/cart.js';
 import { getWishlist, subscribeToWishlist, toggleWishlist } from '../../../services/wishlist.js';
 import { getJson } from '../../../services/api.js';
-
-const bimPrograms = [
-  { duration: '1 month', hours: '20 hours', price: '₹4,999', rating: '4.8', description: 'Build practical BIM foundations through guided exercises.' },
-  { duration: '6 months', hours: '120 hours', price: '₹24,999', rating: '4.8', description: 'Develop job-ready BIM skills with project-based learning.' },
-  { duration: '1 year', hours: '240 hours', price: '₹39,999', rating: '4.8', description: 'Build advanced BIM expertise through a year-long learning path.' },
-];
-
-const bimProgramImage =
-  'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85';
 
 const courseOutcomes = [
   {
@@ -219,15 +210,14 @@ const homeTailwindStyles = `
 function HomePage() {
   const navigate = useNavigate();
   const [activeGuidanceSlide, setActiveGuidanceSlide] = useState(0);
-  const [pausedCourseVideos, setPausedCourseVideos] = useState({});
   const [cartCourseIds, setCartCourseIds] = useState([]);
   const [wishlistCourseIds, setWishlistCourseIds] = useState([]);
   const [cartError, setCartError] = useState('');
   const [publicContent, setPublicContent] = useState({ banners: [], announcements: [], promotions: [] });
   const [contentError, setContentError] = useState('');
-  const [catalogCourses, setCatalogCourses] = useState([]);
+  const [featuredCoursesError, setFeaturedCoursesError] = useState('');
+  const [featuredCourses, setFeaturedCourses] = useState([]);
   const partnerTrackRef = useRef(null);
-  const courseVideoRefs = useRef([]);
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -258,12 +248,12 @@ function HomePage() {
 
   useEffect(() => {
     let active = true;
-    getJson('/api/courses')
+    getJson('/api/courses/homepage-featured')
       .then((courses) => {
-        if (active) setCatalogCourses(courses);
+        if (active) setFeaturedCourses(courses);
       })
       .catch((error) => {
-        if (active) setContentError(error.message);
+        if (active) setFeaturedCoursesError(error.message);
       });
     return () => { active = false; };
   }, []);
@@ -470,27 +460,27 @@ function HomePage() {
 
           <div className="mx-auto grid w-full max-w-[1180px] grid-cols-3 gap-6 max-[900px]:grid-cols-2 max-[640px]:grid-cols-1 max-[640px]:gap-5">
             {cartError && <p className="col-span-full rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{cartError}</p>}
-            {bimPrograms.map(({ duration, hours, price, rating, description }, index) => {
-              const level = ['Foundation', 'Career Track', 'Advanced'][index];
-              const catalogCourse = catalogCourses.find((course) => course.category?.toLowerCase() === 'bim' && course.level === level);
+            {featuredCourses.map((course, index) => {
+              const rating = String(course.rating || 'New');
+              const ratingValue = Number(course.rating) || 0;
               const cartCourse = {
-                cartId: catalogCourse ? `catalog-${catalogCourse.id}` : `bim-${index}`,
-                title: catalogCourse?.title || 'BIM Professional Program',
-                price: catalogCourse ? Number(catalogCourse.price) : price,
-                image: catalogCourse?.image || bimProgramImage,
-                duration: catalogCourse?.duration || duration,
-                hours: catalogCourse ? `${catalogCourse.lessons} lessons` : hours,
-                category: catalogCourse?.category || 'BIM',
-                level: catalogCourse?.level || level,
-                description,
-                instructor: 'SCS Academy',
+                cartId: `catalog-${course.id}`,
+                title: course.title,
+                price: Number(course.price),
+                oldPrice: Number(course.oldPrice),
+                image: course.image,
+                duration: course.duration,
+                hours: course.hours || `${course.lessons} lessons`,
+                category: course.category,
+                level: course.level,
+                description: course.description || `Build practical ${course.category} skills with this career-focused course.`,
+                instructor: course.instructor,
                 rating,
-                badge: 'Bestseller',
-                purchasable: Boolean(catalogCourse),
+                purchasable: true,
               };
-              const courseCard = (
+              return (
                 <motion.article
-                  key={duration}
+                  key={course.id}
                   className="overflow-hidden rounded-xl border border-[#e4e1eb] bg-white text-[#27243a] shadow-[0_18px_55px_#0005] transition-shadow hover:shadow-[0_24px_64px_#0007]"
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
                   whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
@@ -499,64 +489,31 @@ function HomePage() {
                   transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : index * 0.08 }}
                 >
                 <div className="program-image-wrap group/image relative h-[220px] overflow-hidden bg-[#26243c]">
-                  {index < 2 ? (
-                    <>
-                      <video
-                        ref={(video) => {
-                          courseVideoRefs.current[index] = video;
-                        }}
-                        className="h-full w-full object-cover"
-                        src={`/videos/course-${index + 1}.mp4`}
-                        poster={bimProgramImage}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                        preload="metadata"
-                        aria-label={`BIM Professional Program ${duration} preview`}
-                      />
-                      <button
-                        type="button"
-                        className="absolute bottom-3 right-3 z-10 grid size-8 place-items-center rounded-full border border-white/35 bg-black/30 text-white/75 shadow-sm backdrop-blur-sm transition-colors hover:border-white/60 hover:bg-black/55 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                        aria-label={`${pausedCourseVideos[index] ? 'Play' : 'Pause'} ${duration} course video`}
-                        onClick={() => {
-                          const video = courseVideoRefs.current[index];
-                          if (!video) return;
-                          if (video.paused) {
-                            void video.play();
-                            setPausedCourseVideos((paused) => ({ ...paused, [index]: false }));
-                          } else {
-                            video.pause();
-                            setPausedCourseVideos((paused) => ({ ...paused, [index]: true }));
-                          }
-                        }}
-                      >
-                        {pausedCourseVideos[index]
-                          ? <Play size={14} fill="currentColor" aria-hidden="true" />
-                          : <Pause size={14} aria-hidden="true" />}
-                      </button>
-                    </>
-                  ) : (
-                    <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={bimProgramImage} alt="" loading="lazy" />
-                  )}
+                  <img className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover/image:scale-110" src={cartCourse.image} alt={cartCourse.title} loading="lazy" />
+                  <span className="absolute bottom-3 left-3 z-10 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#7A1F2B]">{cartCourse.category}</span>
                   <button
                     type="button"
                     className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full border border-white/60 bg-white/95 text-[#7A1F2B] shadow-md transition hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                     onClick={() => toggleProgramWishlist(cartCourse)}
-                    aria-label={`${wishlistCourseIds.includes(cartCourse.cartId) ? 'Remove' : 'Add'} BIM Professional Program ${['Foundation', 'Career Track', 'Advanced'][index]} ${wishlistCourseIds.includes(cartCourse.cartId) ? 'from' : 'to'} wishlist`}
+                    aria-label={`${wishlistCourseIds.includes(cartCourse.cartId) ? 'Remove' : 'Add'} ${cartCourse.title} ${wishlistCourseIds.includes(cartCourse.cartId) ? 'from' : 'to'} wishlist`}
                     aria-pressed={wishlistCourseIds.includes(cartCourse.cartId)}
                   >
                     <Heart size={18} fill={wishlistCourseIds.includes(cartCourse.cartId) ? 'currentColor' : 'none'} />
                   </button>
-                  {index === 2 && <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#17162c]/80 via-transparent to-[#17162c]/10" />}
                 </div>
                 <div className="p-6">
-                  <h3 className="m-0 font-[Manrope] text-xl font-bold text-[#24232d]">BIM Professional Program</h3>
-                  <p className="mb-0 mt-2 min-h-10 text-sm leading-5 text-[#686674]">{description}</p>
-                  <div className="mt-3 flex items-center gap-1.5 text-sm text-[#686674]" aria-label={`Course rating ${rating} out of 5`}>
+                  <h3 className="m-0 line-clamp-2 font-[Manrope] text-xl font-bold leading-7 text-[#24232d]">{cartCourse.title}</h3>
+                  <p className="m-0 min-h-10 text-sm leading-5 text-[#686674]">{cartCourse.description}</p>
+                  <p className="mb-0 mt-4 text-sm font-semibold text-[#353342]">{cartCourse.instructor}</p>
+                  <p className="mb-0 mt-2 text-sm text-[#686674]">{cartCourse.level}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{cartCourse.hours}</span></div>
+                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{cartCourse.duration}</span></div>
+                  </div>
+                  <div className="mt-2 flex items-center gap-1.5 text-sm text-[#686674]" aria-label={ratingValue ? `Course rating ${rating} out of 5` : 'New course'}>
                     <span className="inline-flex items-center gap-0.5" aria-hidden="true">
                       {Array.from({ length: 5 }, (_, starIndex) => {
-                        const fill = Math.max(0, Math.min(1, Number(rating) - starIndex)) * 100;
+                        const fill = Math.max(0, Math.min(1, ratingValue - starIndex)) * 100;
                         return (
                           <span key={starIndex} className="relative block size-[15px]">
                             <Star size={15} className="absolute inset-0 fill-[#e5e3eb] text-[#d3d0dc]" />
@@ -569,13 +526,10 @@ function HomePage() {
                     </span>
                     <span className="font-bold text-[#24232d]">{rating}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 py-3">
-                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Course hours</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{hours}</span></div>
-                    <div><span className="block text-xs font-bold uppercase tracking-wider text-[#8e899b]">Duration</span><span className="mt-1 block text-sm font-semibold text-[#353342]">{duration}</span></div>
-                  </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <span className="mt-1 block text-xl font-bold text-[#24232d]">₹{Number(cartCourse.price).toLocaleString('en-IN')}</span>
+                      {cartCourse.oldPrice > cartCourse.price && <del className="text-sm text-[#8e899b]">₹{cartCourse.oldPrice.toLocaleString('en-IN')}</del>}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -594,9 +548,9 @@ function HomePage() {
                 </div>
                 </motion.article>
               );
-
-              return courseCard;
             })}
+            {!featuredCourses.length && featuredCoursesError && <p className="col-span-full text-center text-sm text-red-200" role="alert">Featured courses could not be loaded. Please try again later.</p>}
+            {!featuredCourses.length && !featuredCoursesError && <p className="col-span-full text-center text-sm text-[#aaa6b8]">Featured courses will appear here soon.</p>}
           </div>
 
           <div className="mx-auto mt-14 max-w-[920px]">
