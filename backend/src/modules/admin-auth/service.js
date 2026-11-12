@@ -1,8 +1,14 @@
 import crypto from 'node:crypto';
+import nodemailer from 'nodemailer';
 import { connectDatabase } from '../auth/service.js';
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const EMAIL_CHANGE_TTL_MS = 10 * 60 * 1000;
+const PASSWORD_RESET_TTL_MS = 30 * 60 * 1000;
+const EMAIL_RESEND_COOLDOWN_MS = 60 * 1000;
+const MAX_EMAIL_OTP_ATTEMPTS = 5;
 let sessionCollectionPromise;
+let securityIndexesPromise;
 
 const roles = new Set(['owner', 'course_manager', 'support', 'finance']);
 
@@ -38,9 +44,22 @@ export async function loginAdmin({ email: rawEmail, password }) {
     admin = { email: adminUser.email, role: adminUser.role, userId: adminUser._id };
   } else {
     const configuredUsers = getConfiguredAdmins();
-    const configured = configuredUsers.find((item) => item.email === email);
-    if (configured && matches(credentials, configured.password)) {
-      admin = { email, role: configured.role };
+    const overrides = database.collection('admin_auth_overrides');
+    const matchingOverride = configuredUsers.length
+      ? await overrides.findOne({ email, sourceEmail: { $in: configuredUsers.map((item) => item.email) } })
+      : null;
+    const configured = matchingOverride
+      ? configuredUsers.find((item) => item.email === matchingOverride.sourceEmail)
+      : configuredUsers.find((item) => item.email === email);
+    if (configured) {
+      const override = matchingOverride || await overrides.findOne({ sourceEmail: configured.email });
+      const emailMatches = !override || override.email === email;
+      const passwordMatches = override?.passwordHash
+        ? await verifyPassword(credentials, override.passwordSalt, override.passwordHash)
+        : matches(credentials, configured.password);
+      if (emailMatches && passwordMatches) {
+        admin = { email, role: configured.role, sourceEmail: configured.email };
+      }
     }
   }
   if (!admin) {
@@ -56,6 +75,7 @@ export async function loginAdmin({ email: rawEmail, password }) {
     email: admin.email,
     role: admin.role,
     ...(admin.userId ? { userId: admin.userId } : {}),
+    ...(admin.sourceEmail ? { sourceEmail: admin.sourceEmail } : {}),
     createdAt: new Date(),
     expiresAt,
   });
@@ -78,6 +98,15 @@ export async function getAdminSession(token) {
     const adminUser = await (await connectDatabase()).collection('admin_users').findOne({ _id: session.userId, status: 'active' });
     if (!adminUser) return null;
     return { email: adminUser.email, role: adminUser.role, id: String(adminUser._id) };
+  }
+  const configuredUsers = getConfiguredAdmins();
+  const sourceEmail = session.sourceEmail
+    || configuredUsers.find((item) => item.email === session.email)?.email;
+  if (sourceEmail) {
+    const configured = configuredUsers.find((item) => item.email === sourceEmail);
+    if (!configured) return null;
+    const override = await (await connectDatabase()).collection('admin_auth_overrides').findOne({ sourceEmail });
+    return { email: override?.email || configured.email, role: configured.role, sourceEmail };
   }
   return { email: session.email, role: session.role || 'owner' };
 }
@@ -142,7 +171,16 @@ async function verifyPassword(password, salt, expectedHash) {
 
 export async function listAdminUsers() {
   const database = await connectDatabase();
-  const configured = getConfiguredAdmins().map(({ email, role }) => ({ email, role, source: 'environment' }));
+  const configuredUsers = getConfiguredAdmins();
+  const overrides = configuredUsers.length
+    ? await database.collection('admin_auth_overrides').find({ sourceEmail: { $in: configuredUsers.map((item) => item.email) } }).toArray()
+    : [];
+  const overridesBySourceEmail = new Map(overrides.map((override) => [override.sourceEmail, override]));
+  const configured = configuredUsers.map(({ email, role }) => ({
+    email: overridesBySourceEmail.get(email)?.email || email,
+    role,
+    source: 'environment',
+  }));
   const stored = await database.collection('admin_users')
     .find({}, { projection: { email: 1, role: 1, status: 1, createdAt: 1 } })
     .sort({ createdAt: 1 })
@@ -161,7 +199,14 @@ export async function createAdminUser({ email: rawEmail, password, role }) {
 
   const database = await connectDatabase();
   const existing = await database.collection('admin_users').findOne({ email });
-  if (existing || getConfiguredAdmins().some((admin) => admin.email === email)) {
+  const configuredUsers = getConfiguredAdmins();
+  const overrides = configuredUsers.length
+    ? await database.collection('admin_auth_overrides').find({ sourceEmail: { $in: configuredUsers.map((item) => item.email) } }).toArray()
+    : [];
+  const configuredEmails = new Set(configuredUsers.map((admin) => (
+    overrides.find((override) => override.sourceEmail === admin.email)?.email || admin.email
+  )));
+  if (existing || configuredEmails.has(email)) {
     throw makeError('An admin with this email already exists.', 409);
   }
   const salt = crypto.randomBytes(16);
@@ -194,6 +239,253 @@ export async function updateAdminUser(id, { role, status }) {
   );
   if (!result) throw makeError('Admin user not found.', 404);
   return { id: String(result._id), email: result.email, role: result.role, status: result.status };
+}
+
+function getAdminIdentity(admin) {
+  if (admin.id) return { identityKey: `managed:${admin.id}`, adminUserId: admin.id };
+  if (admin.sourceEmail) return { identityKey: `environment:${admin.sourceEmail}`, sourceEmail: admin.sourceEmail };
+  throw makeError('This admin session cannot manage account security. Sign in again.', 401);
+}
+
+function normalizeAdminEmail(value) {
+  const email = String(value || '').trim().toLowerCase();
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw makeError('Enter a valid email address.', 400);
+  }
+  return email;
+}
+
+function otpHash(otp) {
+  if (!process.env.OTP_SECRET) throw makeError('OTP_SECRET must be configured to change admin email addresses.', 503);
+  return crypto.createHmac('sha256', process.env.OTP_SECRET).update(`admin-email-change:${otp}`).digest('hex');
+}
+
+function createMailer() {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    throw makeError('SMTP is not configured. Set SMTP_USER and SMTP_PASSWORD to send admin security emails.', 503);
+  }
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT || 465),
+    secure: process.env.SMTP_SECURE !== 'false',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+  });
+}
+
+async function ensureSecurityIndexes(database) {
+  if (!securityIndexesPromise) {
+    securityIndexesPromise = Promise.all([
+      database.collection('admin_email_change_challenges').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+      database.collection('admin_password_reset_tokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    ]).catch((error) => {
+      securityIndexesPromise = null;
+      throw error;
+    });
+  }
+  await securityIndexesPromise;
+}
+
+async function assertAdminEmailAvailable(database, email, identity) {
+  const managed = await database.collection('admin_users').findOne({ email });
+  if (managed && managed._id.toString() !== identity.adminUserId) {
+    throw makeError('That email address is already assigned to an admin account.', 409);
+  }
+
+  const configuredUsers = getConfiguredAdmins();
+  const overrides = configuredUsers.length
+    ? await database.collection('admin_auth_overrides').find({ sourceEmail: { $in: configuredUsers.map((item) => item.email) } }).toArray()
+    : [];
+  for (const configured of configuredUsers) {
+    const override = overrides.find((item) => item.sourceEmail === configured.email);
+    const currentEmail = override?.email || configured.email;
+    if (currentEmail === email && identity.sourceEmail !== configured.email) {
+      throw makeError('That email address is already assigned to an admin account.', 409);
+    }
+  }
+}
+
+export async function requestAdminEmailChange(admin, { email: rawEmail }) {
+  const email = normalizeAdminEmail(rawEmail);
+  if (email === admin.email) throw makeError('Enter an email address different from your current one.', 400);
+  const identity = getAdminIdentity(admin);
+  const database = await connectDatabase();
+  await ensureSecurityIndexes(database);
+  await assertAdminEmailAvailable(database, email, identity);
+
+  const challenges = database.collection('admin_email_change_challenges');
+  const previous = await challenges.findOne({ identityKey: identity.identityKey });
+  if (previous && Date.now() - previous.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS) {
+    throw makeError('Wait one minute before requesting another verification code.', 429);
+  }
+
+  const otp = String(crypto.randomInt(100000, 1000000));
+  const hashedOtp = otpHash(otp);
+  await challenges.deleteMany({ identityKey: identity.identityKey });
+  const challenge = {
+    ...identity,
+    identityKey: identity.identityKey,
+    email,
+    otpHash: hashedOtp,
+    attempts: 0,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + EMAIL_CHANGE_TTL_MS),
+  };
+  await challenges.insertOne(challenge);
+  try {
+    await createMailer().sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: email,
+      subject: 'Verify your SCS Academy admin email',
+      text: `Your admin email verification code is ${otp}. It expires in 10 minutes.`,
+    });
+  } catch (error) {
+    await challenges.deleteOne({ identityKey: identity.identityKey, otpHash: challenge.otpHash });
+    console.error('Admin email verification delivery failed:', error);
+    throw makeError('The verification email could not be sent. Check SMTP configuration and try again.', 503);
+  }
+  return { message: 'A verification code has been sent to the new email address.' };
+}
+
+export async function verifyAdminEmailChange(admin, { email: rawEmail, otp: rawOtp }) {
+  const email = normalizeAdminEmail(rawEmail);
+  const otp = String(rawOtp || '').trim();
+  if (!/^\d{6}$/.test(otp)) throw makeError('Enter the six-digit verification code.', 400);
+  const identity = getAdminIdentity(admin);
+  const database = await connectDatabase();
+  const challenges = database.collection('admin_email_change_challenges');
+  const challenge = await challenges.findOne({
+    identityKey: identity.identityKey,
+    email,
+    expiresAt: { $gt: new Date() },
+  });
+  if (!challenge) throw makeError('The verification code expired or was not found. Request a new code.', 400);
+  if (!matches(otpHash(otp), challenge.otpHash)) {
+    const attempts = challenge.attempts + 1;
+    if (attempts >= MAX_EMAIL_OTP_ATTEMPTS) {
+      await challenges.deleteOne({ _id: challenge._id });
+      throw makeError('Too many incorrect codes. Request a new verification code.', 429);
+    }
+    await challenges.updateOne({ _id: challenge._id }, { $set: { attempts } });
+    throw makeError('The verification code is incorrect.', 400);
+  }
+
+  await assertAdminEmailAvailable(database, email, identity);
+  if (identity.adminUserId) {
+    const { ObjectId } = await import('mongodb');
+    const result = await database.collection('admin_users').updateOne(
+      { _id: new ObjectId(identity.adminUserId), status: 'active' },
+      { $set: { email, updatedAt: new Date() } },
+    );
+    if (!result.matchedCount) throw makeError('Admin account not found.', 404);
+  } else {
+    await database.collection('admin_auth_overrides').updateOne(
+      { sourceEmail: identity.sourceEmail },
+      { $set: { email, updatedAt: new Date() }, $setOnInsert: { sourceEmail: identity.sourceEmail, createdAt: new Date() } },
+      { upsert: true },
+    );
+  }
+  await challenges.deleteOne({ _id: challenge._id });
+  await database.collection('admin_password_reset_tokens').deleteMany({ identityKey: identity.identityKey });
+  return { email, message: 'Admin email updated successfully.' };
+}
+
+export async function requestAdminPasswordReset(admin) {
+  const identity = getAdminIdentity(admin);
+  const database = await connectDatabase();
+  await ensureSecurityIndexes(database);
+  const resetTokens = database.collection('admin_password_reset_tokens');
+  const previous = await resetTokens.findOne({ identityKey: identity.identityKey });
+  if (previous && Date.now() - previous.createdAt.getTime() < EMAIL_RESEND_COOLDOWN_MS) {
+    throw makeError('Wait one minute before requesting another password link.', 429);
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hash(token);
+  await resetTokens.deleteMany({ identityKey: identity.identityKey });
+  await resetTokens.insertOne({
+    ...identity,
+    identityKey: identity.identityKey,
+    email: admin.email,
+    tokenHash,
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+  });
+
+  let resetUrl;
+  try {
+    let appUrl;
+    try {
+      appUrl = new URL(process.env.ADMIN_APP_URL || 'http://127.0.0.1:5174');
+    } catch {
+      throw makeError('ADMIN_APP_URL must be a valid admin-site URL.', 503);
+    }
+    if (!['http:', 'https:'].includes(appUrl.protocol) || (process.env.NODE_ENV === 'production' && appUrl.protocol !== 'https:')) {
+      throw makeError('ADMIN_APP_URL must use HTTP or HTTPS, and HTTPS in production.', 503);
+    }
+    resetUrl = new URL('/', appUrl);
+    resetUrl.searchParams.set('passwordResetToken', token);
+    await createMailer().sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: admin.email,
+      subject: 'Reset your SCS Academy admin password',
+      text: `Use this one-time link to reset your admin password. It expires in 30 minutes:\n\n${resetUrl.toString()}\n\nIf you did not request this, you can ignore this email.`,
+    });
+  } catch (error) {
+    await resetTokens.deleteOne({ tokenHash });
+    console.error('Admin password reset email delivery failed:', error);
+    if (error.statusCode) throw error;
+    throw makeError('The password reset email could not be sent. Check SMTP configuration and try again.', 503);
+  }
+  return { message: `A password reset link has been sent to ${admin.email}.` };
+}
+
+export async function completeAdminPasswordReset({ token: rawToken, password: rawPassword }) {
+  const token = String(rawToken || '').trim();
+  const password = String(rawPassword || '');
+  if (!/^[a-f\d]{64}$/i.test(token)) throw makeError('The password reset link is invalid or expired.', 400);
+  if (password.length < 12 || password.length > 128) {
+    throw makeError('Admin passwords must be between 12 and 128 characters.', 400);
+  }
+  const database = await connectDatabase();
+  await ensureSecurityIndexes(database);
+  const tokenHash = hash(token);
+  const resetTokens = database.collection('admin_password_reset_tokens');
+  const reset = await resetTokens.findOne({ tokenHash, expiresAt: { $gt: new Date() } });
+  if (!reset) throw makeError('The password reset link is invalid or expired.', 400);
+  const consumed = await resetTokens.deleteOne({ _id: reset._id, expiresAt: { $gt: new Date() } });
+  if (!consumed.deletedCount) throw makeError('The password reset link is invalid or expired.', 400);
+
+  const salt = crypto.randomBytes(16);
+  const passwordHash = await derivePassword(password, salt);
+  if (reset.adminUserId) {
+    const { ObjectId } = await import('mongodb');
+    const result = await database.collection('admin_users').updateOne(
+      { _id: new ObjectId(reset.adminUserId), status: 'active' },
+      { $set: { passwordSalt: salt.toString('base64'), passwordHash, updatedAt: new Date() } },
+    );
+    if (!result.matchedCount) throw makeError('Admin account not found.', 404);
+    await (await getSessions()).deleteMany({ userId: new ObjectId(reset.adminUserId) });
+  } else {
+    if (!getConfiguredAdmins().some((configured) => configured.email === reset.sourceEmail)) {
+      throw makeError('Admin account is no longer configured.', 404);
+    }
+    await database.collection('admin_auth_overrides').updateOne(
+      { sourceEmail: reset.sourceEmail },
+      {
+        $set: { email: reset.email, passwordSalt: salt.toString('base64'), passwordHash, updatedAt: new Date() },
+        $setOnInsert: { sourceEmail: reset.sourceEmail, createdAt: new Date() },
+      },
+      { upsert: true },
+    );
+    await (await getSessions()).deleteMany({
+      $or: [
+        { sourceEmail: reset.sourceEmail },
+        { email: reset.sourceEmail },
+        { email: reset.email },
+      ],
+    });
+  }
+  return { message: 'Password updated. Sign in with your new password.' };
 }
 
 function makeError(message, statusCode) {

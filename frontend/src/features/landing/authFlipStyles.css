@@ -414,13 +414,34 @@
 }
 .auth-flip-switch button:hover { text-decoration: underline; }
 @media (max-width: 720px) {
-  .auth-flip { height: min(590px, calc(100svh - 30px)); overflow-y: auto; }
+  .auth-backdrop {
+    place-items: safe center;
+    overflow-y: auto;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+  .auth-flip {
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .auth-flip-shape { clip-path: polygon(0 0, 100% 0, 100% 22%, 0 12%); }
   .auth-flip.is-register .auth-flip-shape { clip-path: polygon(0 0, 100% 0, 100% 12%, 0 22%); background: linear-gradient(135deg, rgb(62 55 82 / 94%) 0%, rgb(31 30 47 / 94%) 100%); }
   .auth-flip-panel.is-info,
   .auth-flip-panel.is-form { display: none; }
   .auth-flip:not(.is-register) .is-login-form,
-  .auth-flip.is-register .is-register-form { position: relative; display: flex; width: 100%; padding: 76px 28px 30px; }
+  .auth-flip.is-register .is-register-form { position: relative; display: flex; width: 100%; padding: 76px 24px 24px; }
+  .auth-register-title { white-space: normal; }
+}
+@media (max-width: 380px) {
+  .auth-flip:not(.is-register) .is-login-form,
+  .auth-flip.is-register .is-register-form { padding-inline: 18px; }
+}
+@media (max-height: 640px) and (max-width: 720px) {
+  .auth-flip:not(.is-register) .is-login-form,
+  .auth-flip.is-register .is-register-form { padding-top: 60px; padding-bottom: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-flip-shape, .auth-flip-panel, .auth-flip-panel .item,

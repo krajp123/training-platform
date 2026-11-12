@@ -55,11 +55,37 @@ function CourseCard({ course, enrolled = false, isInCart = false, onAddToCart, o
   );
 }
 
+function CourseCardSkeleton() {
+  return (
+    <article className="overflow-hidden rounded-xl border border-[#e1e4eb] bg-white" aria-hidden="true">
+      <div className="h-[120px] animate-pulse bg-[#eef0f4]" />
+      <div className="p-3.5">
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-20 animate-pulse rounded bg-[#eef0f4]" />
+          <div className="h-4 w-12 animate-pulse rounded bg-[#eef0f4]" />
+        </div>
+        <div className="mt-3 h-5 w-3/4 animate-pulse rounded bg-[#eef0f4]" />
+        <div className="mt-2 h-3 w-full animate-pulse rounded bg-[#eef0f4]" />
+        <div className="mt-2 h-3 w-5/6 animate-pulse rounded bg-[#eef0f4]" />
+        <div className="mt-4 flex gap-2">
+          <div className="h-5 w-16 animate-pulse rounded bg-[#eef0f4]" />
+          <div className="h-5 w-14 animate-pulse rounded bg-[#eef0f4]" />
+        </div>
+        <div className="mt-4 flex items-center justify-between border-t border-[#edf0f4] pt-3">
+          <div className="h-5 w-16 animate-pulse rounded bg-[#eef0f4]" />
+          <div className="h-9 w-24 animate-pulse rounded bg-[#eef0f4]" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function CoursesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [level, setLevel] = useState('All levels');
   const [catalogCourses, setCatalogCourses] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
   const [cartCourseIds, setCartCourseIds] = useState([]);
   const [cartError, setCartError] = useState('');
@@ -87,10 +113,14 @@ function CoursesPage() {
         return data;
       })
       .then((data) => {
-        if (active) setCatalogCourses(data);
+        if (!active) return;
+        setCatalogCourses(data);
+        setCatalogLoading(false);
       })
       .catch((error) => {
-        if (active) setCatalogError(error.message);
+        if (!active) return;
+        setCatalogError(error.message);
+        setCatalogLoading(false);
       });
     return () => { active = false; };
   }, []);
@@ -178,7 +208,11 @@ function CoursesPage() {
                 <div className="mb-3 flex items-center gap-3">
                   <h3 id={`${section.title}-title`} className="m-0 font-[Manrope] text-base font-bold text-[#112e49]">{section.title}</h3>
                 </div>
-                {section.items.length > 0 ? (
+                {catalogLoading ? (
+                  <div className="grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-busy="true" aria-label="Loading courses">
+                    {[0, 1, 2].map((skeleton) => <CourseCardSkeleton key={skeleton} />)}
+                  </div>
+                ) : catalogError ? null : section.items.length > 0 ? (
                   <div className="grid max-w-[960px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {section.items.map((course) => (
                       <CourseCard
@@ -193,15 +227,20 @@ function CoursesPage() {
                       />
                     ))}
                   </div>
-                ) : (
+                ) : allCourses.length === 0 ? (
                   <div className="flex items-center gap-2 rounded-md border border-[#f1dfb3] bg-[#fff9e9] px-3 py-2.5 text-xs font-medium text-[#88651d]" role="status">
                     <AlertCircle size={15} className="shrink-0 text-[#d99b22]" />
                     <span>New courses are coming soon. Stay tuned!</span>
                   </div>
+                ) : (
+                  <div className="py-6 text-center">
+                    <CheckCircle2 className="mx-auto text-[#6048b7]" />
+                    <h3 className="mt-2 font-[Manrope] text-base font-bold text-[#112e49]">No courses found</h3>
+                    <p className="mt-1 text-xs text-[#687789]">Try a different search or filter.</p>
+                  </div>
                 )}
               </section>
             ))}
-            {visibleCourses.length === 0 && <div className="py-6 text-center"><CheckCircle2 className="mx-auto text-[#6048b7]" /><h3 className="mt-2 font-[Manrope] text-base font-bold text-[#112e49]">No courses found</h3><p className="mt-1 text-xs text-[#687789]">Try a different search or filter.</p></div>}
           </div>
         </section>
       </main>

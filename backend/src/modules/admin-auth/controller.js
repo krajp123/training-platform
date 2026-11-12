@@ -1,5 +1,6 @@
 import {
-  createAdminUser, deleteAdminSession, getAdminSession, listAdminUsers, loginAdmin, updateAdminUser,
+  completeAdminPasswordReset, createAdminUser, deleteAdminSession, getAdminSession, listAdminUsers, loginAdmin,
+  requestAdminEmailChange, requestAdminPasswordReset, updateAdminUser, verifyAdminEmailChange,
 } from './service.js';
 
 function bearerToken(request) {
@@ -18,7 +19,7 @@ export async function currentAdmin(request, response, next) {
   try {
     const admin = await getAdminSession(bearerToken(request));
     if (!admin) return response.status(401).json({ error: 'Your admin session has expired. Please sign in again.' });
-    return response.json({ admin });
+    return response.json({ admin: { email: admin.email, role: admin.role } });
   } catch (error) {
     return next(error);
   }
@@ -28,6 +29,38 @@ export async function logout(request, response, next) {
   try {
     await deleteAdminSession(bearerToken(request));
     return response.status(204).end();
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function requestEmailChange(request, response, next) {
+  try {
+    return response.json(await requestAdminEmailChange(request.admin, request.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function verifyEmailChange(request, response, next) {
+  try {
+    return response.json(await verifyAdminEmailChange(request.admin, request.body || {}));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function requestPasswordReset(request, response, next) {
+  try {
+    return response.json(await requestAdminPasswordReset(request.admin));
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function resetPassword(request, response, next) {
+  try {
+    return response.json(await completeAdminPasswordReset(request.body || {}));
   } catch (error) {
     return next(error);
   }

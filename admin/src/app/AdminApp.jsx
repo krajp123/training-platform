@@ -10,7 +10,11 @@ function AdminApp() {
     authenticated, authMessage, checkingSession, signIn, signOut,
   } = useAdminSession();
   const learnerProfileId = new URLSearchParams(window.location.search).get('learnerProfile');
+  const passwordResetToken = new URLSearchParams(window.location.search).get('passwordResetToken');
 
+  if (passwordResetToken) {
+    return <AdminLoginPage onLogin={signIn} message={authMessage} />;
+  }
   if (checkingSession) {
     return <main className="flex min-h-screen items-center justify-center bg-white font-sans text-sm font-medium text-[#777681]" aria-live="polite">Checking admin session…</main>;
   }

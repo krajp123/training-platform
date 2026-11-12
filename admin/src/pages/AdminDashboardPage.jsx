@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowUpRight, BookOpen, Check, ChevronFirst, ChevronLeft, ChevronRight, CircleAlert, ListFilter, LogOut,
+  ArrowUpRight, BookOpen, Check, ChevronDown, ChevronFirst, ChevronLeft, ChevronRight, CircleAlert, ListFilter, LogOut,
   GraduationCap, LayoutDashboard, Menu, Pencil, Plus, RefreshCw, Search, Trash2, X,
   Activity, BadgePercent, BookOpenCheck, ClipboardList, Download, Inbox, LibraryBig, Megaphone, MessageSquare, Shield, Ticket, Users, UsersRound, Wallet,
 } from 'lucide-react';
@@ -30,9 +30,9 @@ const panels = [
 
 const rolePanels = {
   owner: panels.map(([id]) => id),
-  course_manager: ['learning', 'learners', 'payments', 'content', 'support'],
-  support: ['learners', 'content', 'support'],
-  finance: ['analytics', 'payments'],
+  course_manager: ['learning', 'learners', 'payments', 'content', 'support', 'settings'],
+  support: ['learners', 'content', 'support', 'settings'],
+  finance: ['analytics', 'payments', 'settings'],
 };
 
 const roleLabels = {
@@ -193,6 +193,14 @@ function Badge({ tone = 'slate', children }) {
 function Banner({ tone = 'error', children, onDismiss }) {
   const isError = tone === 'error';
   const Icon = isError ? CircleAlert : Check;
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => dismissRef.current?.(), 2000);
+    return () => window.clearTimeout(timer);
+  }, [children]);
+
   return (
     <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${isError ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`} role={isError ? 'alert' : 'status'}>
       <Icon className="mt-0.5 shrink-0" size={18} />
@@ -566,6 +574,11 @@ function AdminDashboardPage({ onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 32);
   const [courseDrawerOpen, setCourseDrawerOpen] = useState(false);
+  const [editingSections, setEditingSections] = useState([]);
+  const [editingSectionId, setEditingSectionId] = useState('');
+  const [editingSectionsOpen, setEditingSectionsOpen] = useState(false);
+  const [editingSectionsLoading, setEditingSectionsLoading] = useState(false);
+  const [removingSectionId, setRemovingSectionId] = useState('');
   const [recentActivityPage, setRecentActivityPage] = useState(1);
   const [coursePage, setCoursePage] = useState(1);
   const [selectedLearnerProfile, setSelectedLearnerProfile] = useState(null);
@@ -660,23 +673,24 @@ function AdminDashboardPage({ onLogout }) {
     setCourseForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleCoverImageUpload = (event) => {
+  const handleCoverImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file for the course cover.');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setError('Course cover must be a JPEG, PNG, or WebP image smaller than 5 MB.');
       event.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCourseForm((current) => ({ ...current, image: String(reader.result) }));
-    };
-    reader.onerror = () => {
-      setError('The selected cover image could not be read. Please try another file.');
-    };
-    reader.readAsDataURL(file);
+    setError('');
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      const { url } = await apiRequest('/api/courses/image', { method: 'POST', body: formData });
+      setCourseForm((current) => ({ ...current, image: url }));
+    } catch (uploadError) {
+      setError(uploadError.message);
+    }
     event.target.value = '';
   };
 
@@ -705,6 +719,27 @@ function AdminDashboardPage({ onLogout }) {
       setCourseDrawerOpen(false);
     } catch (requestError) {
       setError(requestError.message);
+    }
+  };
+
+  const removeEditingSection = async (section) => {
+    if (!window.confirm(`Remove "${section.title}" and all of its lessons from this course?`)) return;
+    setError('');
+    setNotice('');
+    setRemovingSectionId(section.id);
+    try {
+      await apiRequest(`/api/admin/platform/courses/${editingId}/sections/${section.id}`, { method: 'DELETE' });
+      const remainingSections = editingSections.filter((item) => item.id !== section.id);
+      setEditingSections(remainingSections);
+      if (editingSectionId === section.id) setEditingSectionId(remainingSections[0]?.id || '');
+      setCourses((current) => current.map((course) => course.id === editingId
+        ? { ...course, sections: (course.sections || []).filter((item) => item.id !== section.id) }
+        : course));
+      setNotice('Course section removed.');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setRemovingSectionId('');
     }
   };
 
@@ -910,6 +945,33 @@ function AdminDashboardPage({ onLogout }) {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [courseDrawerOpen]);
+
+  useEffect(() => {
+    if (!courseDrawerOpen || !editingId) {
+      setEditingSections([]);
+      setEditingSectionId('');
+      setEditingSectionsOpen(false);
+      setEditingSectionsLoading(false);
+      return undefined;
+    }
+    let active = true;
+    setEditingSections([]);
+    setEditingSectionsLoading(true);
+    apiRequest(`/api/admin/platform/courses/${editingId}/sections`)
+      .then(({ sections }) => {
+        if (active) {
+          setEditingSections(sections);
+          setEditingSectionId(sections[0]?.id || '');
+        }
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setEditingSectionsLoading(false);
+      });
+    return () => { active = false; };
+  }, [courseDrawerOpen, editingId]);
 
   const showCatalog = ['owner', 'course_manager'].includes(adminRole);
   const showLearners = ['owner', 'course_manager', 'support'].includes(adminRole);
@@ -1703,6 +1765,63 @@ function AdminDashboardPage({ onLogout }) {
                 </div>
               </section>
 
+              {editingId && (
+                <section>
+                  <h3 className="m-0 mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Course sections</h3>
+                  <div className="relative">
+                    <button
+                      aria-controls="course-sections-menu"
+                      aria-expanded={editingSectionsOpen}
+                      className={`${inputClass} flex items-center justify-between gap-2 text-left`}
+                      disabled={editingSectionsLoading || !editingSections.length}
+                      onClick={() => setEditingSectionsOpen((open) => !open)}
+                      type="button"
+                    >
+                      <span className="truncate">
+                        {editingSectionsLoading
+                          ? 'Loading sections…'
+                          : editingSections.find((section) => section.id === editingSectionId)?.title || 'Choose a section'}
+                      </span>
+                      <ChevronDown className="shrink-0 text-slate-500" size={16} />
+                    </button>
+                    {editingSectionsOpen && (
+                      <div
+                        className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                        id="course-sections-menu"
+                        role="group"
+                        aria-label="Course sections"
+                      >
+                        {editingSections.map((section) => (
+                          <div className={`flex items-center gap-2 rounded-md px-2 py-1.5 ${editingSectionId === section.id ? 'bg-violet-50' : 'hover:bg-slate-50'}`} key={section.id}>
+                            <button
+                              className="min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-left text-sm font-medium text-slate-700"
+                              onClick={() => {
+                                setEditingSectionId(section.id);
+                                setEditingSectionsOpen(false);
+                              }}
+                              type="button"
+                            >
+                              {section.title}
+                            </button>
+                            <button
+                              className={dangerLinkClass}
+                              disabled={Boolean(removingSectionId)}
+                              onClick={() => removeEditingSection(section)}
+                              type="button"
+                            >
+                              {removingSectionId === section.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!editingSectionsLoading && !editingSections.length && (
+                      <p className="m-0 mt-2 text-sm text-slate-500">No sections in this course yet.</p>
+                    )}
+                  </div>
+                </section>
+              )}
+
               <section>
                 <h3 className="m-0 mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">Instructor &amp; content</h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1730,7 +1849,7 @@ function AdminDashboardPage({ onLogout }) {
                       <input className={`${inputClass} flex-1`} name="image" onChange={updateCourseField} placeholder="Paste image URL" required type="url" value={courseForm.image} />
                       <label className={`${softButtonClass} shrink-0 cursor-pointer !px-3`}>
                         Upload
-                        <input accept="image/*" className="hidden" onChange={handleCoverImageUpload} type="file" />
+                        <input accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleCoverImageUpload} type="file" />
                       </label>
                     </div>
                   </div>
@@ -1908,6 +2027,10 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
   const [settingsCategory, setSettingsCategory] = useState('');
   const [admins, setAdmins] = useState([]);
   const [adminForm, setAdminForm] = useState({ email: '', password: '', role: 'course_manager' });
+  const [accountEmail, setAccountEmail] = useState('');
+  const [newAccountEmail, setNewAccountEmail] = useState('');
+  const [emailOtp, setEmailOtp] = useState('');
+  const [emailOtpRequested, setEmailOtpRequested] = useState(false);
 
   const visibleLearners = useMemo(() => learnerResults || learners, [learnerResults, learners]);
   const visiblePanels = rolePanels[role] || [];
@@ -1915,6 +2038,8 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
     apiRequest('/api/admin-auth/me')
       .then(({ admin }) => {
         setRole(admin.role);
+        setAccountEmail(admin.email);
+        setNewAccountEmail(admin.email);
         const allowed = rolePanels[admin.role] || [];
         if (!allowed.includes(panel)) onPanelChange(allowed[0] || '');
       })
@@ -1951,8 +2076,9 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
       requests.push(loadReviews());
     }
     if (panel === 'settings') {
-      requests.push(loadSettings());
-      if (role === 'owner') requests.push(loadAdmins());
+      if (role === 'owner') {
+        requests.push(loadSettings(), loadAdmins());
+      }
     }
 
     Promise.all(requests).finally(() => {
@@ -2176,6 +2302,39 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
     }), 'Platform settings saved.', loadSettings);
   }
 
+  async function requestEmailOtp(event) {
+    event.preventDefault();
+    const result = await perform(() => apiRequest('/api/admin-auth/account/email/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newAccountEmail }),
+    }), 'Verification code sent.');
+    if (result) {
+      setEmailOtpRequested(true);
+      setEmailOtp('');
+    }
+  }
+
+  async function verifyEmailOtp(event) {
+    event.preventDefault();
+    const result = await perform(() => apiRequest('/api/admin-auth/account/email/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newAccountEmail, otp: emailOtp }),
+    }), 'Admin email updated.');
+    if (result) {
+      setAccountEmail(result.email);
+      setNewAccountEmail(result.email);
+      setEmailOtp('');
+      setEmailOtpRequested(false);
+      await onRefresh();
+    }
+  }
+
+  async function sendPasswordResetLink() {
+    await perform(() => apiRequest('/api/admin-auth/account/password-reset', { method: 'POST' }), 'Password reset link sent.');
+  }
+
   async function createAdmin(event) {
     event.preventDefault();
     await perform(async () => {
@@ -2381,15 +2540,6 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
             <Card bodyClassName="p-3" title="Sections">
               <div className="space-y-3 p-2">
                 <label className={labelClass}>Section<select className={inputClass} onChange={(event) => setSelectedSectionId(event.target.value)} value={selectedSectionId}><option value="">Choose a section</option>{sections.map((section) => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>
-              </div>
-              <div className="grid gap-1.5">
-                {sections.map((section) => (
-                  <div className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${selectedSectionId === section.id ? 'border-violet-200 bg-violet-50' : 'border-slate-100'}`} key={section.id}>
-                    <button className={`min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-left font-semibold ${selectedSectionId === section.id ? 'text-violet-700' : 'text-slate-700'}`} onClick={() => setSelectedSectionId(section.id)} type="button">{section.title}</button>
-                    <button className={dangerLinkClass} onClick={() => perform(() => apiRequest(`/api/admin/platform/courses/${selectedCourseId}/sections/${section.id}`, { method: 'DELETE' }), 'Section removed.', () => loadSections())} type="button">Remove</button>
-                  </div>
-                ))}
-                {!sections.length && <p className="m-0 px-3 py-4 text-center text-xs text-slate-400">No sections yet.</p>}
               </div>
             </Card>
           </div>
@@ -2664,20 +2814,55 @@ function AdminOperationsPage({ courses, learners, onRefresh, panel, onPanelChang
       {/* ----------------------------- Settings & admin access ----------------------------- */}
       {panel === 'settings' && (
         <div className="grid items-start gap-6 xl:grid-cols-2">
-          <Card description="General configuration and integration status" icon={Shield} title="Platform settings &amp; integrations">
-            <form className="space-y-4" onSubmit={saveSettings}>
-              <Field label="Platform name" onChange={(platformName) => setSettings({ ...settings, platformName })} value={settings.platformName || ''} />
-              <Field label="Support email" onChange={(supportEmail) => setSettings({ ...settings, supportEmail })} type="email" value={settings.supportEmail || ''} />
-              <Field label="Timezone" onChange={(timezone) => setSettings({ ...settings, timezone })} value={settings.timezone || ''} />
-              <label className={labelClass}>Course categories (comma separated)<input className={inputClass} onChange={(event) => setSettings({ ...settings, categories: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} value={(settings.categories || []).join(', ')} /></label>
-              <label className="flex items-center gap-2.5 text-sm text-slate-700"><input checked={settings.notifications?.announcements ?? true} className="h-4 w-4 rounded border-slate-300 accent-violet-600" onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, announcements: event.target.checked } })} type="checkbox" />Enable learner announcements</label>
-              <button className={buttonClass}>Save settings</button>
-              <div className="border-t border-slate-100 pt-4">
-                <strong className="text-sm text-slate-900">Integration readiness</strong>
-                <p className="m-0 mb-3 mt-1 text-xs text-slate-500">Credentials are environment-only and never displayed here.</p>
-                <div className="flex flex-wrap gap-2">{Object.entries(settings.integrations || {}).map(([name, enabled]) => <Badge key={name} tone={enabled ? 'green' : 'amber'}>{name}: {enabled ? 'configured' : 'not configured'}</Badge>)}</div>
-              </div>
-            </form>
+          {role === 'owner' && (
+            <Card description="General configuration and integration status" icon={Shield} title="Platform settings &amp; integrations">
+              <form className="space-y-4" onSubmit={saveSettings}>
+                <Field label="Platform name" onChange={(platformName) => setSettings({ ...settings, platformName })} value={settings.platformName || ''} />
+                <Field label="Support email" onChange={(supportEmail) => setSettings({ ...settings, supportEmail })} type="email" value={settings.supportEmail || ''} />
+                <Field label="Timezone" onChange={(timezone) => setSettings({ ...settings, timezone })} value={settings.timezone || ''} />
+                <label className={labelClass}>Course categories (comma separated)<input className={inputClass} onChange={(event) => setSettings({ ...settings, categories: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} value={(settings.categories || []).join(', ')} /></label>
+                <label className="flex items-center gap-2.5 text-sm text-slate-700"><input checked={settings.notifications?.announcements ?? true} className="h-4 w-4 rounded border-slate-300 accent-violet-600" onChange={(event) => setSettings({ ...settings, notifications: { ...settings.notifications, announcements: event.target.checked } })} type="checkbox" />Enable learner announcements</label>
+                <button className={buttonClass}>Save settings</button>
+                <div className="border-t border-slate-100 pt-4">
+                  <strong className="text-sm text-slate-900">Integration readiness</strong>
+                  <p className="m-0 mb-3 mt-1 text-xs text-slate-500">Credentials are environment-only and never displayed here.</p>
+                  <div className="flex flex-wrap gap-2">{Object.entries(settings.integrations || {}).map(([name, enabled]) => <Badge key={name} tone={enabled ? 'green' : 'amber'}>{name}: {enabled ? 'configured' : 'not configured'}</Badge>)}</div>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          <Card description="Manage the email and password used to sign in" icon={Shield} title="Admin sign-in &amp; security">
+            <div className="space-y-5">
+              <section className="space-y-3">
+                <div>
+                  <strong className="text-sm text-slate-900">Current email</strong>
+                  <p className="m-0 mt-1 break-all text-sm text-slate-600">{accountEmail}</p>
+                </div>
+                <form className="space-y-3" onSubmit={emailOtpRequested ? verifyEmailOtp : requestEmailOtp}>
+                  <Field label="New email" onChange={setNewAccountEmail} required type="email" value={newAccountEmail} />
+                  {emailOtpRequested && (
+                    <Field
+                      label="Six-digit verification code"
+                      maxLength="6"
+                      onChange={setEmailOtp}
+                      required
+                      value={emailOtp}
+                      inputMode="numeric"
+                    />
+                  )}
+                  <button className={buttonClass} disabled={busy} type="submit">
+                    {emailOtpRequested ? 'Verify code and change email' : 'Send verification code'}
+                  </button>
+                  {emailOtpRequested && <button className={linkClass} disabled={busy} onClick={requestEmailOtp} type="button">Send a new code</button>}
+                </form>
+              </section>
+              <section className="border-t border-slate-100 pt-4">
+                <strong className="text-sm text-slate-900">Change password</strong>
+                <p className="m-0 mb-3 mt-1 text-xs leading-5 text-slate-500">We’ll send a one-time password reset link to your current email. The link expires after 30 minutes.</p>
+                <button className={softButtonClass} disabled={busy || !accountEmail} onClick={sendPasswordResetLink} type="button">Email password reset link</button>
+              </section>
+            </div>
           </Card>
 
           {role === 'owner' && (

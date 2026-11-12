@@ -30,9 +30,8 @@ app.use('/api/payments', paymentRoutes);
 
 app.use((error, _request, response, _next) => {
   if (error.name === 'MulterError') {
-    const isAvatar = error.field === 'avatar';
-    const item = isAvatar ? 'Profile photo' : 'Resume';
-    const size = isAvatar ? '2 MB' : '5 MB';
+    const item = error.field === 'avatar' ? 'Profile photo' : error.field === 'image' ? 'Course cover' : 'Resume';
+    const size = error.field === 'avatar' ? '2 MB' : '5 MB';
     return response.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? `${item} must be smaller than ${size}.` : `${item} upload was rejected.` });
   }
   if (error instanceof SyntaxError && 'body' in error) {

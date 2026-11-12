@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { MongoClient } from 'mongodb';
+import { deleteCloudinaryImage, uploadImage, validateImageFile } from '../../utils/cloudinary.js';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -470,7 +471,7 @@ export async function getUserProfile(userId) {
   const db = await getDatabase();
   const [user, profile] = await Promise.all([
     db.collection('users').findOne({ _id: userId }, { projection: { name: 1, identifier: 1, type: 1, phone: 1, phoneVerified: 1, passwordHash: 1, twoFactorEnabled: 1, emailMarketingConsent: 1 } }),
-    db.collection('profiles').findOne({ userId }, { projection: { _id: 0, userId: 0, 'resume.data': 0, 'avatar.data': 0 } }),
+    db.collection('profiles').findOne({ userId }, { projection: { _id: 0, userId: 0, 'resume.data': 0, 'avatar.data': 0, 'avatar.publicId': 0 } }),
   ]);
   return {
     name: user?.name || '',
@@ -509,17 +510,10 @@ export async function setEmailMarketingConsent(userId, consent) {
 }
 
 export async function saveUserAvatar(userId, file) {
-  const signatures = {
-    'image/jpeg': (data) => data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff,
-    'image/png': (data) => data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
-    'image/webp': (data) => data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WEBP',
-  };
-  if (!file || file.size > 2 * 1024 * 1024 || !signatures[file.mimetype]?.(file.buffer)) {
-    const error = new Error('Profile photo must be a JPEG, PNG, or WebP image smaller than 2 MB.');
-    error.statusCode = 400;
-    throw error;
-  }
+  validateImageFile(file, 2 * 1024 * 1024, 'Profile photo');
+  const uploaded = await uploadImage(file, 'skillpath/profile-avatars');
   const db = await getDatabase();
+  const existing = await db.collection('profiles').findOne({ userId }, { projection: { 'avatar.publicId': 1 } });
   await db.collection('profiles').updateOne(
     { userId },
     {
@@ -528,7 +522,8 @@ export async function saveUserAvatar(userId, file) {
           filename: file.originalname.slice(0, 180),
           contentType: file.mimetype,
           size: file.size,
-          data: file.buffer,
+          url: uploaded.url,
+          publicId: uploaded.publicId,
           updatedAt: new Date(),
         },
         userId,
@@ -538,19 +533,38 @@ export async function saveUserAvatar(userId, file) {
     },
     { upsert: true },
   );
+  if (existing?.avatar?.publicId) await deleteCloudinaryImage(existing.avatar.publicId);
   return { filename: file.originalname, contentType: file.mimetype, size: file.size };
 }
 
 export async function getUserAvatar(userId) {
   const db = await getDatabase();
   const profile = await db.collection('profiles').findOne(
-    { userId, 'avatar.data': { $exists: true } },
-    { projection: { _id: 0, 'avatar.data': 1, 'avatar.contentType': 1 } },
+    { userId, avatar: { $exists: true } },
+    { projection: { _id: 0, 'avatar.data': 1, 'avatar.contentType': 1, 'avatar.url': 1 } },
   );
-  if (!profile?.avatar?.data) {
+  if (!profile?.avatar?.url && !profile?.avatar?.data) {
     const error = new Error('No profile photo has been uploaded.');
     error.statusCode = 404;
     throw error;
+  }
+  if (profile.avatar.url) {
+    const imageUrl = new URL(profile.avatar.url);
+    if (imageUrl.protocol !== 'https:' || imageUrl.hostname !== 'res.cloudinary.com') {
+      const error = new Error('The saved profile photo URL is invalid.');
+      error.statusCode = 502;
+      throw error;
+    }
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      const error = new Error('The saved profile photo could not be retrieved from Cloudinary.');
+      error.statusCode = 502;
+      throw error;
+    }
+    return {
+      contentType: profile.avatar.contentType || imageResponse.headers.get('content-type') || 'image/jpeg',
+      data: Buffer.from(await imageResponse.arrayBuffer()),
+    };
   }
   const data = Buffer.isBuffer(profile.avatar.data)
     ? profile.avatar.data
@@ -560,15 +574,20 @@ export async function getUserAvatar(userId) {
 
 export async function removeUserAvatar(userId) {
   const db = await getDatabase();
-  const result = await db.collection('profiles').updateOne(
+  const existing = await db.collection('profiles').findOne(
     { userId, avatar: { $exists: true } },
-    { $unset: { avatar: '' }, $set: { updatedAt: new Date() } },
+    { projection: { 'avatar.publicId': 1 } },
   );
-  if (!result.modifiedCount) {
+  if (!existing) {
     const error = new Error('No profile photo to remove.');
     error.statusCode = 404;
     throw error;
   }
+  await db.collection('profiles').updateOne(
+    { userId },
+    { $unset: { avatar: '' }, $set: { updatedAt: new Date() } },
+  );
+  if (existing.avatar?.publicId) await deleteCloudinaryImage(existing.avatar.publicId);
 }
 
 export async function saveUserResume(userId, file) {

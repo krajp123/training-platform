@@ -5,12 +5,16 @@ import { apiRequest } from '../services/api.js';
 function AdminLoginPage({ message, onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetToken, setResetToken] = useState(() => new URLSearchParams(window.location.search).get('passwordResetToken') || '');
+  const [resetMessage, setResetMessage] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const submit = async (event) => {
+  const submitLogin = async (event) => {
     event.preventDefault();
     setError('');
+    setResetMessage('');
     setSubmitting(true);
     try {
       const result = await apiRequest('/api/admin-auth/login', {
@@ -24,6 +28,35 @@ function AdminLoginPage({ message, onLogin }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const submitPasswordReset = async (event) => {
+    event.preventDefault();
+    setError('');
+    setResetMessage('');
+    setSubmitting(true);
+    try {
+      const result = await apiRequest('/api/admin-auth/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password: resetPassword }),
+      });
+      window.history.replaceState(null, '', window.location.pathname);
+      setResetToken('');
+      setResetPassword('');
+      setResetMessage(result.message);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const backToLogin = () => {
+    window.history.replaceState(null, '', window.location.pathname);
+    setResetToken('');
+    setError('');
+    setResetMessage('');
   };
 
   return (
@@ -51,56 +84,82 @@ function AdminLoginPage({ message, onLogin }) {
           <div className="w-full max-w-[380px]">
             <header className="mb-8">
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[1.7px] text-[#748092]">Administrator access</p>
-              <h1 className="font-[Manrope,sans-serif] text-[30px] font-semibold tracking-[-1px] text-[#202b3b] sm:text-[34px]" id="admin-login-title">Welcome back</h1>
-              <p className="mt-2 text-sm leading-6 text-[#77808e]">Sign in to continue to your admin dashboard.</p>
+              <h1 className="font-[Manrope,sans-serif] text-[30px] font-semibold tracking-[-1px] text-[#202b3b] sm:text-[34px]" id="admin-login-title">{resetToken ? 'Choose a new password' : 'Welcome back'}</h1>
+              <p className="mt-2 text-sm leading-6 text-[#77808e]">{resetToken ? 'Set a new password to secure your admin account.' : 'Sign in to continue to your admin dashboard.'}</p>
             </header>
 
-            {(error || message) && (
-              <div className="mb-5 flex items-center gap-2.5 rounded-lg border border-[#f1d8d5] bg-[#fff7f6] px-3.5 py-3 text-[13px] text-[#a85248]" role="alert">
+            {(error || resetMessage || message) && (
+              <div
+                className={`mb-5 flex items-center gap-2.5 rounded-lg border px-3.5 py-3 text-[13px] ${resetMessage && !error ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-[#f1d8d5] bg-[#fff7f6] text-[#a85248]'}`}
+                role={resetMessage && !error ? 'status' : 'alert'}
+              >
                 <AlertCircle className="shrink-0" size={17} />
-                <span>{error || message}</span>
+                <span>{error || resetMessage || message}</span>
               </div>
             )}
 
-            <form className="grid gap-4" onSubmit={submit}>
-              <div>
-                <label className="mb-2 block text-[13px] font-semibold text-[#344054]" htmlFor="admin-email">Email address</label>
-                <div className="flex h-[50px] items-center gap-3 rounded-lg border border-[#dce1e8] bg-white px-3.5 text-[#8993a2] transition focus-within:border-[#3975c6] focus-within:ring-[3px] focus-within:ring-[#3975c6]/10">
-                  <Mail className="shrink-0" size={17} aria-hidden="true" />
-                  <input
-                    autoComplete="username"
-                    className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-[#293548] outline-none placeholder:text-[#a0a9b5]"
-                    id="admin-email"
-                    name="email"
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="you@company.com"
-                    required
-                    type="email"
-                    value={email}
-                  />
+            <form className="grid gap-4" onSubmit={resetToken ? submitPasswordReset : submitLogin}>
+              {resetToken ? (
+                <div>
+                  <label className="mb-2 block text-[13px] font-semibold text-[#344054]" htmlFor="admin-new-password">New password (12–128 characters)</label>
+                  <div className="flex h-[50px] items-center gap-3 rounded-lg border border-[#dce1e8] bg-white px-3.5 text-[#8993a2] transition focus-within:border-[#3975c6] focus-within:ring-[3px] focus-within:ring-[#3975c6]/10">
+                    <LockKeyhole className="shrink-0" size={17} aria-hidden="true" />
+                    <input
+                      autoComplete="new-password"
+                      className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-[#293548] outline-none placeholder:text-[#a0a9b5]"
+                      id="admin-new-password"
+                      maxLength="128"
+                      minLength="12"
+                      onChange={(event) => setResetPassword(event.target.value)}
+                      required
+                      type="password"
+                      value={resetPassword}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-[13px] font-semibold text-[#344054]" htmlFor="admin-password">Password</label>
-                <div className="flex h-[50px] items-center gap-3 rounded-lg border border-[#dce1e8] bg-white px-3.5 text-[#8993a2] transition focus-within:border-[#3975c6] focus-within:ring-[3px] focus-within:ring-[#3975c6]/10">
-                  <LockKeyhole className="shrink-0" size={17} aria-hidden="true" />
-                  <input
-                    autoComplete="current-password"
-                    className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-[#293548] outline-none placeholder:text-[#a0a9b5]"
-                    id="admin-password"
-                    name="password"
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    type="password"
-                    value={password}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-semibold text-[#344054]" htmlFor="admin-email">Email address</label>
+                    <div className="flex h-[50px] items-center gap-3 rounded-lg border border-[#dce1e8] bg-white px-3.5 text-[#8993a2] transition focus-within:border-[#3975c6] focus-within:ring-[3px] focus-within:ring-[#3975c6]/10">
+                      <Mail className="shrink-0" size={17} aria-hidden="true" />
+                      <input
+                        autoComplete="username"
+                        className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-[#293548] outline-none placeholder:text-[#a0a9b5]"
+                        id="admin-email"
+                        name="email"
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="you@company.com"
+                        required
+                        type="email"
+                        value={email}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[13px] font-semibold text-[#344054]" htmlFor="admin-password">Password</label>
+                    <div className="flex h-[50px] items-center gap-3 rounded-lg border border-[#dce1e8] bg-white px-3.5 text-[#8993a2] transition focus-within:border-[#3975c6] focus-within:ring-[3px] focus-within:ring-[#3975c6]/10">
+                      <LockKeyhole className="shrink-0" size={17} aria-hidden="true" />
+                      <input
+                        autoComplete="current-password"
+                        className="h-full w-full min-w-0 border-0 bg-transparent text-sm text-[#293548] outline-none placeholder:text-[#a0a9b5]"
+                        id="admin-password"
+                        name="password"
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder="Enter your password"
+                        required
+                        type="password"
+                        value={password}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               <button className="mt-1 flex h-[50px] items-center justify-center rounded-lg border-0 bg-[#762f3b] font-sans text-sm font-semibold text-white shadow-[0_5px_12px_rgba(118,47,59,.2)] transition hover:bg-[#632630] focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#b99a55]/50 disabled:cursor-wait disabled:opacity-70" disabled={submitting} type="submit">
-                  {submitting ? 'Logging in…' : 'Login'}
-                </button>
+                {submitting ? 'Please wait…' : resetToken ? 'Update password' : 'Login'}
+              </button>
             </form>
+            {resetToken && <button className="mt-4 w-full text-sm font-semibold text-[#762f3b] hover:underline" onClick={backToLogin} type="button">Back to sign in</button>}
             <div className="mt-7 flex items-center justify-center gap-2 border-t border-[#edf0f3] pt-5 text-xs text-[#77808e]">
               <ShieldCheck className="text-[#a18443]" size={15} />
               <span>Secure access for authorized administrators</span>

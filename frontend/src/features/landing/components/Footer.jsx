@@ -47,14 +47,14 @@ function Footer({ logoSrc = '/images/logo.png' }) {
           {/* Brand */}
           <div className="max-w-[380px]">
             <a
-              className="mx-auto flex h-[76px] w-[176px] items-center overflow-hidden no-underline max-[480px]:h-[68px] max-[480px]:w-[156px]"
+              className="mx-auto flex h-[100px] w-[200px] items-center overflow-hidden no-underline max-[480px]:h-[88px] max-[480px]:w-[176px]"
               href="/"
               aria-label="SCS Academy home"
             >
-              <img className="h-full w-full object-contain object-center" src={logoSrc} alt="SCS Academy" />
+              <img className="size-[140px] max-w-none object-contain object-center max-[480px]:size-[120px]" src={logoSrc} alt="SCS Academy" />
             </a>
 
-            <p className="mb-0 mt-4 text-left text-sm leading-[1.6] text-[#686674] max-[480px]:text-xs max-[480px]:leading-[1.5]">
+            <p className="mb-0 mt-2 text-left text-sm leading-[1.6] text-[#686674] max-[480px]:text-xs max-[480px]:leading-[1.5]">
               SCS Academy delivers industry-aligned training in BIM and computational design,
               helping architecture, engineering and construction professionals build job-ready
               skills through guided, project-based learning.

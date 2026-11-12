@@ -78,6 +78,7 @@ OTP_SECRET=replace-with-a-long-random-secret
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=replace-with-a-long-unique-password
 ADMIN_ROLE=owner
+ADMIN_APP_URL=https://admin.example.com
 RAZORPAY_KEY_ID=...
 RAZORPAY_KEY_SECRET=...
 SMTP_HOST=smtp.gmail.com
@@ -87,12 +88,17 @@ SMTP_USER=...
 SMTP_PASSWORD=... # Gmail App Password
 SMTP_FROM="SCS Academy <your-gmail-address@gmail.com>"
 SUPPORT_EMAIL=admin@example.com # Optional; falls back to platform supportEmail, ADMIN_EMAIL, then SMTP_USER.
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
 TWILIO_ACCOUNT_SID=...
 TWILIO_AUTH_TOKEN=...
 TWILIO_FROM_NUMBER=+1...
 ```
 
 Email identifiers are delivered through SMTP and phone identifiers must use E.164 format (for example `+919876543210`) and are delivered through Twilio.
+
+Course cover uploads from the admin dashboard and learner profile photos are stored in Cloudinary. Configure the three Cloudinary credentials above in the backend environment; credentials are never sent to either frontend. Pasting an existing course image URL remains supported.
 
 Both React frontends use Tailwind CSS 4 through the Vite plugin. Keep static images and videos under `frontend/public/images` and `frontend/public/videos`, and reference them from the site with root-relative URLs such as `/images/logo.png`.
 
@@ -108,6 +114,8 @@ This builds both React applications. The backend is a Node.js service and does n
 
 - `GET /api/health`
 - `POST /api/admin-auth/login`, `GET /api/admin-auth/me`, `POST /api/admin-auth/logout`
+- `POST /api/admin-auth/account/email/request`, `POST /api/admin-auth/account/email/verify` (authenticated admin; OTP required to change email)
+- `POST /api/admin-auth/account/password-reset` (authenticated admin; sends an email link), `POST /api/admin-auth/password-reset` (one-time email token)
 - `GET /api/admin/overview`, `GET /api/admin/audit-log` (admin)
 - `GET /api/admin/learners`, `PATCH /api/admin/learners/:id/status` (admin)
 - `GET /api/admin/enrollments`, `PATCH /api/admin/enrollments/:id/progress` (admin)
@@ -141,6 +149,8 @@ This builds both React applications. The backend is a Node.js service and does n
 ## Admin and payment configuration
 
 The admin app at http://127.0.0.1:5174 requires `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the backend environment. Set a unique, strong password and never commit real credentials. `ADMIN_ROLE` defaults to `owner`. Additional configured admins can be supplied through `ADMIN_USERS_JSON`; database-managed admin accounts are created and maintained by an owner. Available roles are `owner`, `course_manager`, `support`, and `finance`. Admin sessions expire after eight hours. Email campaigns are limited to active users who explicitly enabled email updates in Account Settings; service messages and purchase receipts are unaffected.
+
+Admins can change their sign-in email after entering a code delivered to the new address, or request a one-time password reset link delivered to their current address from Settings. These features require SMTP credentials and `OTP_SECRET`. Set `ADMIN_APP_URL` to the deployed admin site URL in production; reset links expire after 30 minutes. Environment-configured admin email and password changes are stored as secure database overrides, so the original environment variables remain the configured account identity.
 
 Courses, learners, enrollments, orders, coupons, CMS content, tickets, reviews, and audit history are stored in MongoDB. Courses are seeded from demo data only when their collection is empty. Draft or archived courses are omitted from public catalog and lesson APIs. Learners can access preview lessons before enrollment; full course lessons require enrollment.
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Bell, BookOpen, Heart, HelpCircle, LogOut, Menu, MoreVertical, Plus, Settings, ShoppingCart, User, Wallet, X } from 'lucide-react';
 import { getBlob } from '../../../services/api.js';
@@ -47,7 +48,15 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
   const navigate = useNavigate();
   const isHomePage = isHomePageOverride ?? window.location.pathname === '/';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isCompactNav, setIsCompactNav] = useState(() => window.matchMedia('(max-width: 980px)').matches);
+  const [compactNavHeight, setCompactNavHeight] = useState(0);
+  const navigationRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profileMenuPosition, setProfileMenuPosition] = useState(null);
+  const profileButtonRef = useRef(null);
+  const mobileProfileButtonRef = useRef(null);
+  const profileMenuContainerRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 32);
   const showScrolledStyle = isScrolled && !disableScrollShift;
   const [user, setUser] = useState(() => {
@@ -59,6 +68,29 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
   });
   const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
   const [cartCount, setCartCount] = useState(0);
+
+  const updateProfileMenuPosition = (button = (isCompactNav ? mobileProfileButtonRef.current : profileButtonRef.current)) => {
+    if (!button) return;
+
+    const anchor = button.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuWidth = Math.min(280, viewportWidth - 24);
+    const menuLeft = Math.max(12, Math.min(anchor.right - menuWidth, viewportWidth - menuWidth - 12));
+    const menuHeight = profileMenuRef.current?.scrollHeight || 560;
+    const spaceBelow = Math.max(0, viewportHeight - anchor.bottom - 24);
+    const spaceAbove = Math.max(0, anchor.top - 24);
+    const opensAbove = spaceBelow < Math.min(menuHeight, viewportHeight - 24) && spaceAbove > spaceBelow;
+
+    setProfileMenuPosition({
+      left: menuLeft,
+      width: menuWidth,
+      maxHeight: opensAbove ? spaceAbove : spaceBelow,
+      opensAbove,
+      top: anchor.bottom,
+      bottom: viewportHeight - anchor.top,
+    });
+  };
 
   useEffect(() => {
     try {
@@ -82,6 +114,32 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
     window.addEventListener('scroll', updateScrollState, { passive: true });
     return () => window.removeEventListener('scroll', updateScrollState);
   }, []);
+
+  useEffect(() => {
+    const updateCompactNav = () => setIsCompactNav(window.matchMedia('(max-width: 980px)').matches);
+    window.addEventListener('resize', updateCompactNav, { passive: true });
+    return () => window.removeEventListener('resize', updateCompactNav);
+  }, []);
+
+  useEffect(() => {
+    if (isCompactNav && menuOpen) {
+      setCompactNavHeight(navigationRef.current?.scrollHeight ?? 0);
+    }
+  }, [isCompactNav, menuOpen, user]);
+
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+
+    const updatePosition = () => updateProfileMenuPosition();
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [profileOpen]);
 
   useEffect(() => {
     const updateUser = (event) => {
@@ -129,6 +187,12 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
   };
 
   const closeMenu = () => setMenuOpen(false);
+  const toggleMenu = () => {
+    if (!menuOpen && isCompactNav) {
+      setCompactNavHeight(navigationRef.current?.scrollHeight ?? 0);
+    }
+    setMenuOpen((isOpen) => !isOpen);
+  };
 
   const logout = () => {
     localStorage.removeItem('scs_session_token');
@@ -180,8 +244,8 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
   };
 
   return (
-    <header className={`${isHomePage ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 h-[96px] px-4 pt-6 max-[720px]:h-[78px] max-[720px]:px-2 max-[720px]:pt-4`}>
-      <div className={`relative mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between gap-[clamp(18px,3vw,40px)] border bg-white px-[clamp(18px,2.4vw,36px)] text-[#202330] transition-[translate,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[720px]:h-[62px] max-[720px]:px-[18px] ${showScrolledStyle ? '-translate-y-6 max-[720px]:-translate-y-4 rounded-t-none rounded-b-[28px] border-transparent shadow-[0_8px_24px_#15162918]' : 'translate-y-0 rounded-2xl border-[#e7e9ef] shadow-[0_8px_30px_#15162920]'}`}>
+    <header className={`${isHomePage ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 h-[96px] px-4 pt-6 max-[980px]:h-[78px] max-[980px]:px-2 max-[980px]:pt-4`}>
+      <div className={`relative mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between gap-[clamp(18px,3vw,40px)] border bg-white px-[clamp(18px,2.4vw,36px)] text-[#202330] transition-[translate,border-radius,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[980px]:h-[62px] max-[980px]:px-[18px] ${showScrolledStyle ? '-translate-y-6 max-[980px]:-translate-y-4 rounded-t-none rounded-b-[28px] border-transparent shadow-[0_8px_24px_#15162918]' : 'translate-y-0 rounded-2xl border-[#e7e9ef] shadow-[0_8px_30px_#15162920]'}`}>
       <div
         aria-hidden="true"
         className={`pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-500 motion-reduce:transition-none ${showScrolledStyle ? 'opacity-100' : 'opacity-0'}`}
@@ -189,33 +253,52 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
       >
         <div className="absolute inset-0 rounded-[inherit]" style={ringStyle} />
       </div>
-      <a className="relative z-10 inline-flex h-[60px] w-[140px] shrink-0 items-center overflow-hidden no-underline max-[720px]:h-[52px] max-[720px]:w-[120px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
-        <img className="h-full w-full object-contain object-center" src={logoSrc} alt="SCS Academy" />
+      <a className="relative z-10 inline-flex h-[68px] w-[148px] shrink-0 items-center overflow-hidden no-underline max-[980px]:h-[58px] max-[980px]:w-[132px] max-[380px]:w-[96px]" href="/" aria-label="SCS Academy home" onClick={closeMenu}>
+        <img className="h-full w-full scale-[1.45] object-contain object-center max-[980px]:scale-[1.35]" src={logoSrc} alt="SCS Academy" />
       </a>
       <button
-        className="relative z-10 hidden size-[35px] place-items-center rounded-md border border-[#dfe3ea] bg-white text-[#24384d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[720px]:grid"
+        type="button"
+        className="relative z-10 hidden size-[35px] place-items-center rounded-md border border-[#dfe3ea] bg-white text-[#24384d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[980px]:order-3 max-[980px]:ml-1 max-[980px]:grid max-[380px]:size-8"
         aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
         aria-expanded={menuOpen}
         aria-controls="marketing-navigation"
-        onClick={() => setMenuOpen((isOpen) => !isOpen)}
+        onClick={toggleMenu}
       >
         {menuOpen ? <X size={21} /> : <Menu size={21} />}
       </button>
       <nav
+        ref={navigationRef}
         id="marketing-navigation"
-        className={`relative z-10 flex flex-1 items-center gap-[clamp(16px,2vw,28px)] text-[#303545] max-[720px]:absolute max-[720px]:top-[61px] max-[720px]:right-0 max-[720px]:left-0 max-[720px]:flex-col max-[720px]:items-stretch max-[720px]:gap-0 max-[720px]:border max-[720px]:border-t-0 max-[720px]:border-[#e7e9ef] max-[720px]:bg-white max-[720px]:px-[17px] max-[720px]:pb-4 max-[720px]:pt-2 max-[720px]:shadow-[0_12px_20px_#15162918] ${menuOpen ? 'max-[720px]:flex' : 'max-[720px]:hidden'}`}
+        className="relative z-10 flex flex-1 items-center gap-[clamp(16px,2vw,28px)] text-[#303545] transition-[height,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none max-[980px]:absolute max-[980px]:top-[61px] max-[980px]:right-0 max-[980px]:left-0 max-[980px]:flex-col max-[980px]:items-stretch max-[980px]:gap-0 max-[980px]:min-h-0 max-[980px]:overflow-hidden max-[980px]:border max-[980px]:border-t-0 max-[980px]:border-[#e7e9ef] max-[980px]:bg-white max-[980px]:px-[17px] max-[980px]:pb-4 max-[980px]:pt-2 max-[980px]:shadow-[0_12px_20px_#15162918]"
+        style={{
+          height: isCompactNav ? `${menuOpen ? compactNavHeight : 0}px` : 'auto',
+          opacity: isCompactNav && !menuOpen ? 0 : 1,
+          transform: isCompactNav && !menuOpen ? 'translateY(-10px)' : 'translateY(0)',
+          pointerEvents: isCompactNav && !menuOpen ? 'none' : 'auto',
+        }}
+        aria-hidden={isCompactNav && !menuOpen}
+        inert={isCompactNav && !menuOpen ? '' : undefined}
         aria-label="Main navigation"
       >
-        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/bim" onClick={closeMenu}>Learn BIM</a>
-        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[980px]:border-b max-[980px]:border-[#edf0f4] max-[980px]:px-[3px] max-[980px]:py-3" href="/bim" onClick={closeMenu}>Learn BIM</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[980px]:border-b max-[980px]:border-[#edf0f4] max-[980px]:px-[3px] max-[980px]:py-3" href="/#courses" onClick={(event) => scrollToSection(event, 'courses')}>Explore courses</a>
 
-        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
-        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[720px]:border-b max-[720px]:border-[#edf0f4] max-[720px]:px-[3px] max-[720px]:py-3" href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
-        <div className={`ml-auto flex items-center gap-[10px] max-[720px]:ml-0 max-[720px]:mt-3 max-[720px]:justify-start ${user ? 'absolute right-6 top-1/2 -translate-y-1/2 max-[720px]:right-[18px] max-[720px]:top-[11px] max-[720px]:translate-y-0' : ''}`}>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[980px]:border-b max-[980px]:border-[#edf0f4] max-[980px]:px-[3px] max-[980px]:py-3" href="/#how-it-works" onClick={(event) => scrollToSection(event, 'how-it-works')}>About SAS Academy</a>
+        <a className="text-[15px] font-bold text-[#171923] no-underline transition-colors hover:text-[#6048b7] max-[980px]:border-b max-[980px]:border-[#edf0f4] max-[980px]:px-[3px] max-[980px]:py-3" href="/#stories" onClick={(event) => scrollToSection(event, 'stories')}>Our learners</a>
+        {!user && (
+          <div className="mt-3 flex items-center gap-2 min-[981px]:hidden">
+            <button className="min-h-10 cursor-pointer rounded-md border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#24384d] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('login')}>Login</button>
+            <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#202330] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('join')}>
+              Join now <ArrowUpRight size={15} />
+            </button>
+          </div>
+        )}
+      </nav>
+      <div className="relative z-10 ml-auto flex shrink-0 items-center gap-[10px] max-[980px]:order-2 max-[980px]:gap-0">
           <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[980px]:size-8 max-[380px]:size-[30px]"
               aria-label="Notifications"
               title="Notifications"
             >
@@ -223,7 +306,7 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
             </button>
             <a
               href="/wishlist"
-              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+              className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[980px]:size-8 max-[380px]:size-[30px]"
               aria-label="Wishlist"
             >
               <Heart size={21} strokeWidth={1.8} />
@@ -231,7 +314,7 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
           </div>
           <a
             href="/cart"
-            className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
+            className="relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[#7A1F2B] transition-colors hover:bg-[#fff3eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[980px]:size-8 max-[380px]:size-[30px]"
             aria-label={`Shopping cart${cartCount ? `, ${cartCount} ${cartCount === 1 ? 'course' : 'courses'}` : ''}`}
           >
             <ShoppingCartPlus />
@@ -241,39 +324,94 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
               </span>
             )}
           </a>
-          {user ? (
-            <div
-              className="relative size-10 shrink-0"
-              onMouseEnter={() => setProfileOpen(true)}
-              onMouseLeave={() => setProfileOpen(false)}
+          {user && (
+            <button
+              ref={mobileProfileButtonRef}
+              type="button"
+              className="hidden size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#e1e5ec] bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b] max-[980px]:inline-flex max-[980px]:size-8 max-[380px]:size-[30px]"
+              aria-label={`Open ${user.name || 'your'} account menu`}
+              aria-expanded={profileOpen}
+              aria-controls="profile-menu"
+              onClick={(event) => {
+                updateProfileMenuPosition(event.currentTarget);
+                setProfileOpen((open) => (
+                  window.matchMedia('(hover: hover) and (pointer: fine)').matches ? true : !open
+                ));
+              }}
             >
+              <img className="size-full object-cover" src={avatarUrl} alt="" />
+            </button>
+          )}
+          {user ? (
+            <>
+              <div
+                className="relative size-10 shrink-0 max-[980px]:hidden"
+                onMouseEnter={() => {
+                  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setProfileOpen(true);
+                }}
+                onMouseLeave={(event) => {
+                  if (
+                    window.matchMedia('(hover: hover) and (pointer: fine)').matches
+                    && !profileMenuContainerRef.current?.contains(event.relatedTarget)
+                  ) setProfileOpen(false);
+                }}
+              >
                 <button
+                  ref={profileButtonRef}
                   type="button"
                   className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#e1e5ec] bg-white shadow-sm transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#64748b]"
                   aria-label={`Open ${user.name || 'your'} account menu`}
                   aria-expanded={profileOpen}
                   aria-controls="profile-menu"
-                  onFocus={() => setProfileOpen(true)}
-                  onClick={() => setProfileOpen((open) => !open)}
+                  onClick={(event) => {
+                    updateProfileMenuPosition(event.currentTarget);
+                    setProfileOpen((open) => (
+                      window.matchMedia('(hover: hover) and (pointer: fine)').matches ? true : !open
+                    ));
+                  }}
                 >
                   <img className="size-full object-cover" src={avatarUrl} alt="" />
                 </button>
-              <div
-                className="absolute right-0 top-full z-50 w-[min(280px,calc(100vw-32px))] overflow-hidden pt-3 motion-reduce:transition-none"
-                style={{
-                  maxHeight: profileOpen ? 'calc(100vh - 96px)' : '0px',
-                  opacity: profileOpen ? 1 : 0,
-                  transform: profileOpen ? 'translateY(0) scaleY(1)' : 'translateY(-8px) scaleY(0.96)',
-                  transformOrigin: 'top right',
-                  transition: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                    ? 'none'
-                    : 'max-height 700ms cubic-bezier(0.16, 1, 0.3, 1), opacity 420ms ease, transform 600ms cubic-bezier(0.16, 1, 0.3, 1)',
-                  pointerEvents: profileOpen ? 'auto' : 'none',
-                }}
-                aria-hidden={!profileOpen}
-                inert={!profileOpen ? '' : undefined}
-              >
-                  <div id="profile-menu" className="max-h-[calc(100vh-96px)] overflow-y-auto overflow-x-hidden border border-[#d9dce5] bg-white shadow-[0_16px_40px_#10101b26]" role="menu" aria-label="Account menu">
+              </div>
+              {profileMenuPosition && createPortal(
+                <div
+                  ref={profileMenuContainerRef}
+                  className="fixed z-[60] overflow-hidden motion-reduce:transition-none"
+                  style={{
+                    left: `${profileMenuPosition.left}px`,
+                    top: profileMenuPosition.opensAbove ? 'auto' : `${profileMenuPosition.top}px`,
+                    bottom: profileMenuPosition.opensAbove ? `${profileMenuPosition.bottom}px` : 'auto',
+                    width: `${profileMenuPosition.width}px`,
+                    maxHeight: profileOpen ? `${profileMenuPosition.maxHeight + 12}px` : '0px',
+                    paddingTop: profileMenuPosition.opensAbove ? 0 : '12px',
+                    paddingBottom: profileMenuPosition.opensAbove ? '12px' : 0,
+                    opacity: profileOpen ? 1 : 0,
+                    transform: profileOpen
+                      ? 'translateY(0) scaleY(1)'
+                      : `translateY(${profileMenuPosition.opensAbove ? '8px' : '-8px'}) scaleY(0.96)`,
+                    transformOrigin: profileMenuPosition.opensAbove ? 'bottom right' : 'top right',
+                    transition: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                      ? 'none'
+                      : 'max-height 700ms cubic-bezier(0.16, 1, 0.3, 1), opacity 420ms ease, transform 600ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    pointerEvents: profileOpen ? 'auto' : 'none',
+                  }}
+                  onMouseEnter={() => {
+                    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setProfileOpen(true);
+                  }}
+                  onMouseLeave={() => {
+                    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) setProfileOpen(false);
+                  }}
+                  aria-hidden={!profileOpen}
+                  inert={!profileOpen ? '' : undefined}
+                >
+                  <div
+                    ref={profileMenuRef}
+                    id="profile-menu"
+                    className="overflow-y-auto overflow-x-hidden overscroll-contain border border-[#d9dce5] bg-white shadow-[0_16px_40px_#10101b26]"
+                    style={{ maxHeight: profileOpen ? `${profileMenuPosition.maxHeight}px` : undefined }}
+                    role="menu"
+                    aria-label="Account menu"
+                  >
                     <div className="flex min-h-[88px] items-center gap-3 border-b border-[#e3e5eb] px-5 py-4">
                       <img className="size-14 shrink-0 rounded-full object-cover" src={avatarUrl} alt="" />
                       <div className="min-w-0">
@@ -306,18 +444,19 @@ function Navbar({ onAuth, logoSrc = '/images/logo.png', isHomePageOverride, disa
                       </button>
                     </div>
                   </div>
-              </div>
-            </div>
+                </div>,
+                document.body,
+              )}
+            </>
           ) : (
             <>
-              <button className="min-h-10 cursor-pointer rounded-md border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#24384d] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('login')}>Login</button>
-              <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#202330] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc]" onClick={() => openAuth('join')}>
+              <button className="min-h-10 cursor-pointer rounded-md border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#24384d] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc] max-[980px]:hidden" onClick={() => openAuth('login')}>Login</button>
+              <button className="inline-flex min-h-10 cursor-pointer items-center gap-[7px] rounded-full border border-[#dfe3ea] bg-white px-4 font-['DM_Sans'] text-[14px] font-bold text-[#202330] transition-colors hover:border-[#aeb8c6] hover:bg-[#f8fafc] max-[980px]:hidden" onClick={() => openAuth('join')}>
                 Join now <ArrowUpRight size={15} />
               </button>
             </>
           )}
-        </div>
-        </nav>
+      </div>
       </div>
     </header>
   );
